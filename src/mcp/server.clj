@@ -1,18 +1,16 @@
 (ns mcp.server
-  (:require [c3kit.apron.corec :as ccc]
-            [c3kit.apron.utilc :as utilc]
+  (:require [c3kit.apron.utilc :as utilc]
             [clojure.java.shell :as shell]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [mcp.core :as core]))
 
-(def protocol-version "2024-11-05")
-(def rpc-version "2.0")
 (def server-version "0.1.0")
 
 (defmulti method-result :method)
 
-(defmethod method-result "initialize" [_req]
-  {:protocolVersion protocol-version
-   :capabilities    {:resources {}
+(defmethod method-result :initialize [_req]
+  {:protocolVersion core/protocol-version
+   :capabilities    {:resources {:listChanged true}
                      :logging   {}
                      :tools     {:listChanged true}
                      :prompts   {}}
@@ -36,9 +34,9 @@
     :mimeType    "text/plain"
     :text        "This is the content of baz"}])
 
-(defmethod method-result "resources/list" [_req]
+(defmethod method-result :resources/list [_req]
   {:resources (map #(dissoc % :text) resources)})
-(defmethod method-result "resources/read" [req]
+(defmethod method-result :resources/read [req]
   (let [path (str/replace (:uri (:params req)) #"resource://" "")]
     {:contents (->> resources
                     (filter #(str/includes? (:uri %) path))
@@ -76,7 +74,7 @@
   {:prompts []})
 
 (defn handle [req]
-  {:jsonrpc rpc-version
+  {:jsonrpc core/rpc-version
    :id      (:id req)
    :result  (method-result req)})
 
