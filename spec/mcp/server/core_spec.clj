@@ -99,7 +99,7 @@
           (should= "Server not initialized" (:message error))
           (should= "Must initialize connection before invoking methods" (:data error))))
 
-      #_(it "from clients with a newer version"
+      (it "from clients with a newer version"
         (let [req (assoc-in @req [:params :protocolVersion] "2025-06-19")
               {:keys [error] :as resp} (sut/handle @server req)]
           (should= "2.0" (:jsonrpc resp))
