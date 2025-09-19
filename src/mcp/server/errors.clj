@@ -1,15 +1,16 @@
 (ns mcp.server.errors)
 
-(defn ->rpc-error
-  ([id code message data]
-   (merge (->rpc-error code message data) {:id id}))
-  ([code message data]
-   {:jsonrpc "2.0"
-    :error   {:code code :message message :data data}}))
+(def errors
+  {:invalid-request {:code -32600 :message "Invalid Request"}
+   :uninitialized {:code -32002 :message "Server not initialized"}
+   :unsupported-protocol {:code -32602 :message "Unsupported protocol version"}})
 
-(defn uninitialized [id]
-  (->rpc-error id -32002 "Server not initialized" "Must initialize connection before invoking methods"))
-(defn bad-request [msg]
-  (->rpc-error -32600 "Invalid Request" msg))
-(defn unsupported-protocol [id]
-  (->rpc-error id -32602 "Unsupported protocol version" {:supported ["2025-06-18"]}))
+(defn ->rpc-error
+  ([kind data] (->rpc-error kind nil data))
+  ([kind id data] {:jsonrpc "2.0"
+                   :id id
+                   :error (merge (kind errors) {:data data})}))
+
+(defn uninitialized [id] (->rpc-error :uninitialized id "Must initialize connection before invoking methods"))
+(defn invalid-request [data] (->rpc-error :invalid-request data))
+(defn unsupported-protocol [id] (->rpc-error :unsupported-protocol id {:supported ["2025-06-18"]}))

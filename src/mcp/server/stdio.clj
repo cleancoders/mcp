@@ -20,7 +20,7 @@
   (try
     (utilc/<-json-kw request)
     (catch Exception _
-      (send-response! (errors/bad-request "The JSON sent is not a valid JSON-RPC request object")))))
+      (send-response! (errors/invalid-request "Request is not a valid JSON string")))))
 
 (defn handle-stdio [server]
   (->> (safe-read-line)

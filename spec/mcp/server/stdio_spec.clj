@@ -10,6 +10,8 @@
 (declare spec)
 (declare server)
 
+(defn ->request [edn] (str (utilc/->json edn) "\n"))
+
 (describe "stdio"
   (with-stubs)
 
@@ -21,7 +23,7 @@
 
   (it "throws a custom error if read-line fails"
     (with-redefs [read-line (fn [] (throw (IOException. "Stdin error")))]
-      (let [req     (utilc/->json {:id 1 :method "initialize" :params {}})
+      (let [req     (->request {:id 1 :method "initialize" :params {}})
             message "Input stream from client severed"]
         (->> @server
              sut/handle-stdio
@@ -31,21 +33,21 @@
 
   (it "stdio handler prints error to stdout when not json"
     (let [req      "blah"
-          expected (errors/bad-request "The JSON sent is not a valid JSON-RPC request object")
+          expected (errors/invalid-request "Request is not a valid JSON string")
           out-json (with-in-str req (with-out-str (sut/handle-stdio @server)))]
       (should= expected (utilc/<-json-kw out-json))))
 
-  (it "stdio handler prints error to stdout when not json"
+  (it "stdio handler does not print when server/handler returns nil"
     (with-redefs [server/handle      (stub :server/handle)
                   sut/send-response! (stub :send-response!)]
-      (let [req (utilc/->json {:jsonrpc "2.0" :id 1 :method "initialize" :params {}})]
+      (let [req (->request {:jsonrpc "2.0" :id 1 :method "initialize" :params {}})]
         (with-in-str req (sut/handle-stdio @server))
         (should-have-invoked :server/handle)
         (should-not-have-invoked :send-response!))))
 
   (it "stdio handler prints error to stdout when jsonrpc missing"
-    (let [req      (utilc/->json {:id 1 :method "initialize" :params {}})
-          expected (errors/bad-request "The JSON sent is not a valid JSON-RPC request object")
+    (let [req      (->request {:id 1 :method "initialize" :params {}})
+          expected (errors/invalid-request "The JSON sent is not a valid JSON-RPC request object")
           out-json (with-in-str req (with-out-str (sut/handle-stdio @server)))]
       (should= expected (utilc/<-json-kw out-json))))
   )

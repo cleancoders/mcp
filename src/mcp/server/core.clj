@@ -1,6 +1,5 @@
 (ns mcp.server.core
-  (:require [c3kit.apron.corec :as ccc]
-            [c3kit.apron.schema :as schema]
+  (:require [c3kit.apron.schema :as schema]
             [mcp.server.errors :as errors]
             [mcp.server.initialize :as init]))
 
@@ -24,7 +23,7 @@
 
 (defn maybe-bad-request [req]
   (when (schema/error? req)
-    (errors/bad-request "The JSON sent is not a valid JSON-RPC request object")))
+    (errors/invalid-request "The JSON sent is not a valid JSON-RPC request object")))
 
 (defn maybe-uninitialized [server req]
   (when (not (or (init/initializing? req)
@@ -35,7 +34,7 @@
 (defn maybe-incomplete-init [server req]
   (when (and (init/initializing? req)
              (= :requested (init/initialization server)))
-    (errors/bad-request "Already received initialization request")))
+    (errors/invalid-request "Already received initialization request")))
 
 (defn -handle [server req]
   (let [handler (-> server :capabilities (get (:method req)) :handler)]
