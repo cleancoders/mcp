@@ -25,6 +25,14 @@
 
     ; will need to check for non-json at higher level
 
+    (with req {:jsonrpc "2.0"
+               :id      1
+               :method  "initialize"
+               :params  {:protocolVersion "2024-11-05"
+                         :capabilities    {}
+                         :clientInfo      {:name    "Test Client"
+                                           :version "1.0.0"}}})
+
     (context "rejects bad JSON-RPC"
 
       (it "junk json"
@@ -33,19 +41,31 @@
           (should-respond-invalid-req resp)))
 
       (it "missing JSON-RPC version"
-        (let [req  {}
-              resp (sut/handle @server req)]
+        (let [resp (sut/handle @server (dissoc @req :jsonrpc))]
           (should-respond-invalid-req resp)))
 
       (it "wrong JSON-RPC version"
-        (let [req  {:jsonrpc 1}
+        (let [req  (assoc @req :jsonrpc "foo")
               resp (sut/handle @server req)]
           (should-respond-invalid-req resp)))
 
-      #_(it "missing method"
-        (let [req  {:jsonrpc "2.0"}
-              resp (sut/handle @server req)]
+      (it "missing method"
+        (let [resp (sut/handle @server (dissoc @req :method))]
           (should-respond-invalid-req resp)))
+
+      (it "empty method"
+        (let [resp (sut/handle @server (assoc @req :method ""))]
+          (should-respond-invalid-req resp)))
+
+      (it "missing parameters"
+        (let [resp (sut/handle @server (dissoc @req :params))]
+          (should-respond-invalid-req resp)))
+
+      (it "invalid id"
+        (let [resp (sut/handle @server (assoc @req :id true))]
+          (should-respond-invalid-req resp)))
+
+      ; will need to enforce parameter schema
       )
     )
 

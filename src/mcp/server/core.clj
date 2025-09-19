@@ -8,7 +8,10 @@
 (defn =to [x] {:validate #(= x %) :message (format "must be equal to %s" x)})
 
 (def rpc-request-schema
-  {:jsonrpc {:type :string :validations [required (=to "2.0")]}})
+  {:jsonrpc {:type :string :validations [required (=to "2.0")]}
+   :method  {:type :string :validations [required]}
+   :id      {:type :long}
+   :params  {:type :map :validations [required]}})
 
 (defn ->rpc-error
   ([id code message data]
