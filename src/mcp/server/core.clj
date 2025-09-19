@@ -1,8 +1,26 @@
 (ns mcp.server.core
-  (:require [c3kit.apron.schema :as schema]))
+  (:require [c3kit.apron.corec :as ccc]
+            [c3kit.apron.schema :as schema]
+            [c3kit.apron.time :as time]))
+
+(defn initialize! [spec ratom req]
+  (swap! ratom assoc :initialization :requested)
+  {:jsonrpc "2.0"
+   :id      (:id req)
+   :result  {:protocolVersion (:protocol-version spec)
+             :serverInfo      {:name    (:name spec)
+                               :title   (:title spec)
+                               :version (:server-version spec)}}})
+(defn initialize? [req]
+  (= "initialize" (:method req)))
+(defn initialization [server]
+  (-> server :state deref :initialization))
 
 (defn ->server [spec]
-  )
+  (let [state (atom {})]
+    (merge spec
+           {:state        state
+            :capabilities {"initialize" {:handler (partial initialize! spec state)}}})))
 
 (def required {:validate schema/present? :message "is required"})
 (defn =to [x] {:validate #(= x %) :message (format "must be equal to %s" x)})
@@ -20,13 +38,39 @@
    {:jsonrpc "2.0"
     :error   {:code code :message message :data data}}))
 
-(defn bad-request []
-  (->rpc-error -32600 "Invalid Request" "The JSON sent is not a valid JSON-RPC request object"))
+(defn uninitialized [id]
+  (->rpc-error id -32002 "Server not initialized" "Must initialize connection before invoking methods"))
+(defn bad-request [msg]
+  (->rpc-error -32600 "Invalid Request" msg))
 (defn unsupported-protocol [id]
-  (->rpc-error 1 -32602 "Unsupported protocol version" {:supported ["2024-11-05"]}))
+  (->rpc-error id -32602 "Unsupported protocol version" {:supported ["2025-06-18"]}))
+
+(defn maybe-bad-request [req]
+  (when (schema/error? req)
+    (bad-request "The JSON sent is not a valid JSON-RPC request object")))
+
+(defn maybe-uninitialized [server req]
+  (when (and (not (initialize? req)))
+    (uninitialized (:id req))))
+
+(defn maybe-incomplete-init [server req]
+  (when (and (initialize? req) (= :requested (initialization server)))
+    (bad-request "Already received initialization request")))
+
+(defn maybe-unsupported-version [server req]
+  (let [supported (time/parse "YYYY-MM-DD" (:protocol-version server))
+        ;requested (time/parse "YYYY_MM_DD" )
+        ]
+    (prn "supported: " supported)
+    ))
+
+(defn -handle [server req]
+  (let [handler (-> server :capabilities (get (:method req)) :handler)]
+    (handler req)))
 
 (defn handle [server req]
   (let [conformed (schema/conform rpc-request-schema req)]
-    (if (schema/error? conformed)
-      (bad-request)
-      (unsupported-protocol 1))))
+    (or (maybe-bad-request conformed)
+        (maybe-uninitialized server conformed)
+        (maybe-incomplete-init server conformed)
+        (-handle server req))))

@@ -9,7 +9,7 @@
 (describe "MCP server"
 
   (it "protocol version"
-    (should= "2024-11-05" core/protocol-version))
+    (should= "2025-06-18" core/protocol-version))
 
   (it "server version"
     (should= "2.0" core/rpc-version))
