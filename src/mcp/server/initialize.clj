@@ -20,7 +20,15 @@
   (or (maybe-unsupported-version spec req)
       (-initialize! spec ratom req)))
 
-(defn initialize? [req]
-  (= "initialize" (:method req)))
+(defn confirm! [ratom _req]
+  (when (= :requested (:initialization @ratom))
+    (swap! ratom assoc :initialization :confirmed)))
+
+(defn initializing? [req]
+  (or (= "initialize" (:method req))))
+(defn notifying? [req]
+  (= "notifications/initialized" (:method req)))
 (defn initialization [server]
   (-> server :state deref :initialization))
+(defn initialized? [server]
+  (= :confirmed (initialization server)))

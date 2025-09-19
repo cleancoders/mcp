@@ -1,5 +1,6 @@
 (ns mcp.server.initialize-spec
   (:require [mcp.server.core :as server]
+            [mcp.server.initialize :as sut]
             [mcp.server.spec-helper :as server-helper]
             [speclj.core :refer :all]))
 
@@ -28,7 +29,7 @@
           (should= "Must initialize connection before invoking methods" (:data error))))
 
       (it "after notification, but before initialization"
-        (server/handle @server {:jsonrpc "2.0" :method "notification/initialized"})
+        (server/handle @server {:jsonrpc "2.0" :method "notifications/initialized"})
         (let [{:keys [error] :as resp} (server/handle @server server-helper/foo-req)]
           (should= "2.0" (:jsonrpc resp))
           (should= 2 (:id resp))
@@ -64,5 +65,15 @@
       (it "only once"
         (server/handle @server server-helper/init-req)
         (let [resp (server/handle @server server-helper/init-req)]
-          (server-helper/should-respond-invalid-req resp "Already received initialization request"))))
-    ))
+          (server-helper/should-respond-invalid-req resp "Already received initialization request")))
+
+      ; with capabilities
+      )
+
+    (it "receives initialization notification"
+      (server/handle @server server-helper/init-req)
+      (server/handle @server {:jsonrpc "2.0" :method "notifications/initialized"})
+      (should= :confirmed (sut/initialization @server))
+      )
+    )
+  )

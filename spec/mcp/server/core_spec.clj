@@ -43,15 +43,22 @@
         (let [resp (sut/handle @server (assoc @req :method ""))]
           (server-helper/should-respond-invalid-req resp "The JSON sent is not a valid JSON-RPC request object")))
 
-      (it "missing parameters"
-        (let [resp (sut/handle @server (dissoc @req :params))]
-          (server-helper/should-respond-invalid-req resp "The JSON sent is not a valid JSON-RPC request object")))
-
       (it "invalid id"
         (let [resp (sut/handle @server (assoc @req :id true))]
           (server-helper/should-respond-invalid-req resp "The JSON sent is not a valid JSON-RPC request object")))
 
       ; will need to enforce parameter schema
       )
+
+    ; format edge cases
+    ; string id
+    ; block requests
+    ; make params optional
+    )
+
+  #_(context "request handlers"
+
+    (it "respond after initialization"
+      (sut/handle @server server-helper/init-req))
     )
   )
