@@ -1,36 +1,13 @@
 (ns mcp.server.core
   (:require [c3kit.apron.schema :as schema]
-            [c3kit.apron.time :as time]
-            [mcp.server.errors :as errors]))
-
-(defn maybe-unsupported-version [server req]
-  (let [supported (time/parse :webform (:protocol-version server))
-        requested (time/parse :webform (:protocolVersion (:params req)))]
-    (when (time/after? requested supported)
-      (errors/unsupported-protocol (:id req)))))
-
-(defn -initialize! [spec ratom req]
-  (swap! ratom assoc :initialization :requested)
-  {:jsonrpc "2.0"
-   :id      (:id req)
-   :result  {:protocolVersion (:protocol-version spec)
-             :serverInfo      {:name    (:name spec)
-                               :title   (:title spec)
-                               :version (:server-version spec)}}})
-(defn initialize! [spec ratom req]
-  (or (maybe-unsupported-version spec req)
-      (-initialize! spec ratom req)))
-
-(defn initialize? [req]
-  (= "initialize" (:method req)))
-(defn initialization [server]
-  (-> server :state deref :initialization))
+            [mcp.server.errors :as errors]
+            [mcp.server.initialize :as init]))
 
 (defn ->server [spec]
   (let [state (atom {})]
     (merge spec
            {:state        state
-            :capabilities {"initialize" {:handler (partial initialize! spec state)}}})))
+            :capabilities {"initialize" {:handler (partial init/initialize! spec state)}}})))
 
 (def required {:validate schema/present? :message "is required"})
 (defn =to [x] {:validate #(= x %) :message (format "must be equal to %s" x)})
@@ -46,11 +23,11 @@
     (errors/bad-request "The JSON sent is not a valid JSON-RPC request object")))
 
 (defn maybe-uninitialized [server req]
-  (when (and (not (initialize? req)))
+  (when (and (not (init/initialize? req)))
     (errors/uninitialized (:id req))))
 
 (defn maybe-incomplete-init [server req]
-  (when (and (initialize? req) (= :requested (initialization server)))
+  (when (and (init/initialize? req) (= :requested (init/initialization server)))
     (errors/bad-request "Already received initialization request")))
 
 (defn -handle [server req]
