@@ -52,13 +52,15 @@
 
     ; format edge cases
     ; string id
-    ; block requests
+    ; batch requests
     ; make params optional
     )
 
   (context "request handlers"
 
     (before (server-helper/initialize! @server))
+
+    ; catch when handlers throw
 
     (it "undefined method"
       (let [resp (sut/handle @server (server-helper/->req {:method "foo/bar" :id 1}))]
