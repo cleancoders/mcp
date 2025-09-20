@@ -1,17 +1,27 @@
 (ns mcp.server.core
   (:require [c3kit.apron.schema :as schema]
             [mcp.core :as core]
+            [mcp.server.resource :as resource]
             [mcp.server.errors :as errors]
-            [mcp.server.initialize :as init]))
+            [mcp.server.initialize :as init]
+            [medley.core :as medley]))
+
+(defn ->default-handlers [spec state]
+  {"initialize"                {:handler (partial init/initialize! spec state)}
+   "notifications/initialized" {:handler (partial init/confirm! state)}})
+
+(defn with-resource-lists [capabilities {:keys [resources]}]
+  (if (seq resources)
+    (assoc capabilities "resources/list" {:handler (resource/->list-handler resources)})
+    capabilities))
 
 (defn ->server [spec]
-  (let [state        (atom {})
-        capabilities (merge (:capabilities spec)
-                            {"initialize"                {:handler (partial init/initialize! spec state)}
-                             "notifications/initialized" {:handler (partial init/confirm! state)}})]
-    (merge spec
-           {:state        state
-            :capabilities capabilities})))
+  (let [state (atom {})]
+    (medley/deep-merge
+      spec
+      {:state        state
+       :capabilities (-> (->default-handlers spec state)
+                         (with-resource-lists spec))})))
 
 (defn =to [x] {:validate #(= x %) :message (format "must be equal to %s" x)})
 
