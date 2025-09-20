@@ -1,5 +1,6 @@
 (ns mcp.server.core
   (:require [c3kit.apron.schema :as schema]
+            [mcp.core :as core]
             [mcp.server.errors :as errors]
             [mcp.server.initialize :as init]))
 
@@ -12,12 +13,11 @@
            {:state        state
             :capabilities capabilities})))
 
-(def required {:validate schema/present? :message "is required"})
 (defn =to [x] {:validate #(= x %) :message (format "must be equal to %s" x)})
 
 (def rpc-request-schema
-  {:jsonrpc {:type :string :validations [required (=to "2.0")]}
-   :method  {:type :string :validations [required]}
+  {:jsonrpc {:type :string :validations [core/required (=to "2.0")]}
+   :method  {:type :string :validations [core/required]}
    :id      {:type :long}
    :params  {:type :map}})
 

@@ -2,6 +2,7 @@
  :paths   ["src"]
  :deps    {
            com.cleancoders.c3kit/apron {:mvn/version "2.2.1"}
+           dev.weavejester/medley      {:mvn/version "1.9.0"}
            org.clojure/clojure         {:mvn/version "1.12.1"}
            }
  :aliases {

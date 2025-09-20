@@ -2,6 +2,7 @@
   (:require [mcp.server.core :as server]
             [mcp.server.initialize :as sut]
             [mcp.server.spec-helper :as server-helper]
+            [medley.core :as medley]
             [speclj.core :refer :all]))
 
 (declare spec)
@@ -37,13 +38,22 @@
           (should= "Server not initialized" (:message error))
           (should= "Must initialize connection before invoking methods" (:data error))))
 
+      (it "from clients with no protocol version"
+        (let [req (medley/dissoc-in server-helper/init-req [:params :protocolVersion])
+              {:keys [error] :as resp} (server/handle @server req)]
+          (should= "2.0" (:jsonrpc resp))
+          (should= 1 (:id resp))
+          (should= -32602 (:code error))
+          (should= "Invalid Parameters" (:message error))
+          (should= ["2025-06-18"] (:supported (:data error)))))
+
       (it "from clients with a newer version"
         (let [req (assoc-in server-helper/init-req [:params :protocolVersion] "2025-06-19")
               {:keys [error] :as resp} (server/handle @server req)]
           (should= "2.0" (:jsonrpc resp))
           (should= 1 (:id resp))
           (should= -32602 (:code error))
-          (should= "Unsupported protocol version" (:message error))
+          (should= "Invalid Parameters" (:message error))
           (should= ["2025-06-18"] (:supported (:data error))))))
 
     (context "responds to initialization request"
@@ -72,7 +82,7 @@
 
     (it "receives initialization notification"
       (server/handle @server server-helper/init-req)
-      (server/handle @server {:jsonrpc "2.0" :method "notifications/initialized"})
+      (should-be-nil (server/handle @server {:jsonrpc "2.0" :method "notifications/initialized"}))
       (should= :confirmed (sut/initialization @server))
       )
     )
