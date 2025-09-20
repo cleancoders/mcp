@@ -1,8 +1,9 @@
 (ns mcp.server
-  (:require [c3kit.apron.utilc :as utilc]
-            [clojure.java.shell :as shell]
+  (:require [clojure.java.shell :as shell]
             [clojure.string :as str]
-            [mcp.core :as core]))
+            [mcp.core :as core]
+            [mcp.server.core :as server]
+            [mcp.server.stdio :as stdio]))
 
 (def server-version "0.1.0")
 
@@ -79,21 +80,11 @@
    :result  (method-result req)})
 
 (defn -main [& args]
-  (loop []
-    (let [message (read-line)]
-      (try
-        (let [req (utilc/<-json-kw message)]
-          (try
-            (spit "out.log" (str "<<< " req "\n") :append true)
-            (when-not (str/starts-with? (:method req) "notifications/")
-              (let [resp (handle req)]
-                (spit "out.log" (str ">>> " resp "\n") :append true)
-                (println (utilc/->json resp))))
-            (catch Exception e
-              (spit "out.log" (str (.getMessage e) "\n") :append true)
-              (spit "out.log" (apply str (interpose "\n" (.getStackTrace e))) :append true)
-              (System/exit 1))))
-        (catch Exception e
-          (spit "out.log" (str (.getMessage e) "\n") :append true)
-          (spit "out.log" "message: " message :append true))))
-    (recur)))
+  (let [spec   {:name             "Test Server"
+                :server-version   "1.0.0"
+                :protocol-version "2025-06-18"
+                :capabilities     {"experimental/foo" {:handler (fn [req] :handled)}}}
+        server (server/->server spec)]
+    (loop []
+      (stdio/handle-stdio server)
+      (recur))))

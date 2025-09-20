@@ -24,17 +24,19 @@
                          (with-resource-lists spec))})))
 
 (defn =to [x] {:validate #(= x %) :message (format "must be equal to %s" x)})
+(defn string-or-long? [x] (or (string? x) (int? x) (char? x)))
 
 (def rpc-request-schema
   {:jsonrpc {:type :string :validations [core/required (=to "2.0")]}
    :method  {:type :string :validations [core/required]}
-   :id      {:type :long}
+   :id      {:type #{:long :string} :validate string-or-long?}
    :params  {:type :map}})
 
 (defn maybe-bad-request [req]
-  (when (schema/error? req)
-    (let [id (if (schema/error? (:id req)) nil (:id req))]
-      (errors/invalid-request id "The JSON sent is not a valid JSON-RPC request object"))))
+  (let [req (schema/validate rpc-request-schema req)
+        id  (delay (if (schema/error? (:id req)) nil (:id req)))]
+    (when (schema/error? req)
+      (errors/invalid-request @id "The JSON sent is not a valid JSON-RPC request object"))))
 
 (defn maybe-uninitialized [server req]
   (when (not (or (init/initializing? req)
@@ -54,7 +56,7 @@
 
 (defn handle [server req]
   (let [conformed (schema/conform rpc-request-schema req)]
-    (or (maybe-bad-request conformed)
+    (or (maybe-bad-request req)
         (maybe-uninitialized server conformed)
         (maybe-incomplete-init server conformed)
         (-handle server req))))

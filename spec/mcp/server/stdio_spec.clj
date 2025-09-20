@@ -10,6 +10,10 @@
 (declare spec)
 (declare server)
 
+(def mock-response {:jsonrpc "2.0"
+                    :id      1
+                    :result  {:protocolVersion "2024-11-05"}})
+
 (defn ->request [edn] (str (utilc/->json edn) "\n"))
 
 (describe "stdio"
@@ -21,6 +25,8 @@
               :capabilities     {"experimental/foo" {:handler (fn [_] :handled)}}})
   (with server (server/->server @spec))
 
+  (redefs-around [server/handle (stub :server/handle {:return mock-response})])
+
   (it "throws a custom error if read-line fails"
     (with-redefs [read-line (fn [] (throw (IOException. "Stdin error")))]
       (let [req     (->request {:id 1 :method "initialize" :params {}})
@@ -31,23 +37,22 @@
              (with-in-str req)
              (should-throw ExceptionInfo message)))))
 
-  (it "stdio handler prints error to stdout when not json"
+  (it "prints error to stdout when not json"
     (let [req      "blah"
           expected (errors/invalid-request "Request is not a valid JSON string")
           out-json (with-in-str req (with-out-str (sut/handle-stdio @server)))]
+      (should-not-have-invoked :server/handle)
       (should= expected (utilc/<-json-kw out-json))))
 
-  #_(it "stdio handler does not print when server/handler returns nil"
-    (with-redefs [server/handle      (stub :server/handle)
-                  sut/send-response! (stub :send-response!)]
+  (it "does not print when server/handler returns nil"
+    (with-redefs [server/handle (stub :server/handle {:return nil})]
       (let [req (->request {:jsonrpc "2.0" :id 1 :method "initialize" :params {}})]
         (with-in-str req (sut/handle-stdio @server))
         (should-have-invoked :server/handle)
         (should-not-have-invoked :send-response!))))
 
-  (it "stdio handler prints error to stdout when jsonrpc missing"
-    (let [req      (->request {:id 1 :method "initialize" :params {}})
-          expected (errors/invalid-request 1 "The JSON sent is not a valid JSON-RPC request object")
-          out-json (with-in-str req (with-out-str (sut/handle-stdio @server)))]
-      (should= expected (utilc/<-json-kw out-json))))
+  (it "prints result of handler"
+    (let [req      (->request {:jsonrpc "2.0" :id 1 :method "initialize" :params {}})
+          response (with-in-str req (with-out-str (sut/handle-stdio @server)))]
+      (should= (str (utilc/->json mock-response) "\n") response)))
   )

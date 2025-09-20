@@ -43,12 +43,28 @@
         (let [resp (sut/handle @server (assoc @req :method ""))]
           (server-helper/should-respond-invalid-req resp "The JSON sent is not a valid JSON-RPC request object" (:id @req))))
 
-      (it "invalid id"
+      (it "invalid id type returns invalid request"
         (let [resp (sut/handle @server (assoc @req :id true))]
           (server-helper/should-respond-invalid-req resp "The JSON sent is not a valid JSON-RPC request object")))
 
       ; will need to enforce parameter schema
+
+      (it "invalid params"
+        (let [resp (sut/handle @server (assoc @req :params true))]
+          (server-helper/should-respond-invalid-req resp "The JSON sent is not a valid JSON-RPC request object" 1)))
       )
+
+    (it "returns a number id"
+      (let [resp (sut/handle @server (assoc @req :method ""))]
+        (server-helper/should-respond-invalid-req resp "The JSON sent is not a valid JSON-RPC request object" 1)))
+
+    (it "returns a string id"
+      (let [resp (sut/handle @server (assoc @req :method "" :id "abc"))]
+        (server-helper/should-respond-invalid-req resp "The JSON sent is not a valid JSON-RPC request object" "abc")))
+
+
+
+
 
     ; format edge cases
     ; string id
