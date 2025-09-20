@@ -55,7 +55,9 @@
     ; shows capabilities in initialization
     ; defines resource title
     ; defines resource description
+    ; watches file changes (& notifies)
     ; prefers user-defined handler to one defined here
+    ; handles file not found
 
     (it "defines list"
       (let [server    (-> @spec
