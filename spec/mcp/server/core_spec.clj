@@ -56,9 +56,13 @@
     ; make params optional
     )
 
-  #_(context "request handlers"
+  (context "request handlers"
 
-      (it "respond after initialization"
-        (sut/handle @server server-helper/init-req))
+    (before (server-helper/initialize! @server))
+
+    (it "undefined method"
+      (let [resp (sut/handle @server (server-helper/->req {:method "foo/bar" :id 1}))]
+        (server-helper/should-respond-unknown-method resp "Method 'foo/bar' is not supported" 1))
       )
+    )
   )

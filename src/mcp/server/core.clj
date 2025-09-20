@@ -38,8 +38,9 @@
     (errors/invalid-request "Already received initialization request")))
 
 (defn -handle [server req]
-  (let [handler (-> server :capabilities (get (:method req)) :handler)]
-    (handler req)))
+  (if-let [handler (-> server :capabilities (get (:method req)) :handler)]
+    (handler req)
+    (errors/invalid-method (:id req) (:method req))))
 
 (defn handle [server req]
   (let [conformed (schema/conform rpc-request-schema req)]

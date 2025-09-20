@@ -1,5 +1,6 @@
 (ns mcp.server.spec-helper
-  (:require [speclj.core :refer :all]))
+  (:require [mcp.server.core :as server]
+            [speclj.core :refer :all]))
 
 (defmacro should-respond-invalid-req
   ([resp msg]
@@ -10,6 +11,16 @@
       (should= "2.0" (:jsonrpc resp#))
       (should= -32600 (:code error#))
       (should= "Invalid Request" (:message error#))
+      (should= ~msg (:data error#))
+      (should= ~id (:id resp#)))))
+
+(defmacro should-respond-unknown-method
+  ([resp msg id]
+   `(let [resp# ~resp
+          error# (:error resp#)]
+      (should= "2.0" (:jsonrpc resp#))
+      (should= -32601 (:code error#))
+      (should= "Method not found" (:message error#))
       (should= ~msg (:data error#))
       (should= ~id (:id resp#)))))
 
@@ -25,3 +36,7 @@
                                      :version "1.0.0"}}}))
 (def foo-req
   (->req {:method "experimental/foo" :id 2 :params {}}))
+
+(defn initialize! [server]
+  (server/handle server init-req)
+  (server/handle server {:jsonrpc "2.0" :method "notifications/initialized"}))
