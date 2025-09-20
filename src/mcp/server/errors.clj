@@ -11,6 +11,10 @@
                    :id id
                    :error (merge (kind errors) {:data data})}))
 
-(defn uninitialized [id] (->rpc-error :uninitialized id "Must initialize connection before invoking methods"))
-(defn invalid-request [data] (->rpc-error :invalid-request data))
-(defn unsupported-protocol [id] (->rpc-error :unsupported-protocol id {:supported ["2025-06-18"]}))
+(defn uninitialized [id]
+  (->rpc-error :uninitialized id "Must initialize connection before invoking methods"))
+(defn invalid-request
+  ([data] (->rpc-error :invalid-request data))
+  ([id data] (->rpc-error :invalid-request id data)))
+(defn unsupported-protocol [id]
+  (->rpc-error :unsupported-protocol id {:supported ["2025-06-18"]}))

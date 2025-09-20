@@ -23,7 +23,8 @@
 
 (defn maybe-bad-request [req]
   (when (schema/error? req)
-    (errors/invalid-request "The JSON sent is not a valid JSON-RPC request object")))
+    (let [id (if (schema/error? (:id req)) nil (:id req))]
+      (errors/invalid-request id "The JSON sent is not a valid JSON-RPC request object"))))
 
 (defn maybe-uninitialized [server req]
   (when (not (or (init/initializing? req)

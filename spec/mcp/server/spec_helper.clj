@@ -1,13 +1,17 @@
 (ns mcp.server.spec-helper
   (:require [speclj.core :refer :all]))
 
-(defmacro should-respond-invalid-req [resp msg]
-  `(let [resp#  ~resp
-         error# (:error resp#)]
-     (should= "2.0" (:jsonrpc resp#))
-     (should= -32600 (:code error#))
-     (should= "Invalid Request" (:message error#))
-     (should= ~msg (:data error#))))
+(defmacro should-respond-invalid-req
+  ([resp msg]
+   `(should-respond-invalid-req ~resp ~msg nil))
+  ([resp msg id]
+   `(let [resp# ~resp
+          error# (:error resp#)]
+      (should= "2.0" (:jsonrpc resp#))
+      (should= -32600 (:code error#))
+      (should= "Invalid Request" (:message error#))
+      (should= ~msg (:data error#))
+      (should= ~id (:id resp#)))))
 
 (defn ->req [spec]
   (merge spec
