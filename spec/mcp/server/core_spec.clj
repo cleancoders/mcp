@@ -72,11 +72,17 @@
     ; make params optional
     )
 
+  (it "does")
+
   (context "request handlers"
 
     (before (server-helper/initialize! @server))
 
     ; catch when handlers throw
+
+    (it "sends invalid request when initialization comes through while already initialized"
+      (let [resp (sut/handle @server (assoc server-helper/init-req :id 2))]
+        (server-helper/should-respond-invalid-req resp "Connection already initialized" 2)))
 
     (it "undefined method"
       (let [resp (sut/handle @server (server-helper/->req {:method "foo/bar" :id 1}))]

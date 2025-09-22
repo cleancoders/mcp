@@ -49,6 +49,10 @@
              (= :requested (init/initialization server)))
     (errors/invalid-request "Already received initialization request")))
 
+(defn maybe-already-initialized [server req]
+  (when (and (init/initialized? server) (init/initializing? req))
+    (errors/invalid-request (:id req) "Connection already initialized")))
+
 (defn -handle [server req]
   (if-let [handler (-> server :capabilities (get (:method req)) :handler)]
     (handler req)
@@ -59,4 +63,5 @@
     (or (maybe-bad-request req)
         (maybe-uninitialized server conformed)
         (maybe-incomplete-init server conformed)
+        (maybe-already-initialized server req)
         (-handle server req))))
