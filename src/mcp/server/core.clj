@@ -16,7 +16,7 @@
     capabilities))
 
 (defn ->server [spec]
-  (let [state (atom {})]
+  (let [state (atom {:seen-ids #{}})]
     (medley/deep-merge
       spec
       {:state        state
@@ -47,16 +47,27 @@
 (defn maybe-incomplete-init [server req]
   (when (and (init/initializing? req)
              (= :requested (init/initialization server)))
-    (errors/invalid-request "Already received initialization request")))
+    (errors/invalid-request (:id req) "Already received initialization request")))
 
 (defn maybe-already-initialized [server req]
   (when (and (init/initialized? server) (init/initializing? req))
     (errors/invalid-request (:id req) "Connection already initialized")))
 
+(defn update-seen-ids! [server req]
+  (when-let [id (:id req)]
+    (swap! (:state server) update :seen-ids conj id)))
+
 (defn -handle [server req]
+  (update-seen-ids! server req)
   (if-let [handler (-> server :capabilities (get (:method req)) :handler)]
     (handler req)
     (errors/invalid-method (:id req) (:method req))))
+
+(defn maybe-id-previously-used [server req]
+  (let [id       (:id req)
+        seen-ids (:seen-ids @(:state server))]
+    (when (seen-ids id)
+      (errors/invalid-request id (format "Request ID: %s used previously during this session" id)))))
 
 (defn handle [server req]
   (let [conformed (schema/conform rpc-request-schema req)]
@@ -64,4 +75,5 @@
         (maybe-uninitialized server conformed)
         (maybe-incomplete-init server conformed)
         (maybe-already-initialized server req)
+        (maybe-id-previously-used server req)
         (-handle server req))))

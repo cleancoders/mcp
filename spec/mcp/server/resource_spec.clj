@@ -19,8 +19,8 @@
   (it "undefined by default"
     (let [server (server/->server @spec)
           _      (server-helper/initialize! server)
-          resp   (server/handle server (server-helper/->req {:method "resources/list" :id 1}))]
-      (server-helper/should-respond-unknown-method resp "Method 'resources/list' is not supported" 1)))
+          resp   (server/handle server (server-helper/->req {:method "resources/list" :id 2}))]
+      (server-helper/should-respond-unknown-method resp "Method 'resources/list' is not supported" 2)))
 
   (context "files"
 
@@ -41,7 +41,7 @@
 
       (it "content"
         (let [file (sut/->mem-file {"/foo/bar" {:content (.getBytes "the content")}} "/foo/bar")]
-          (should= "the content" (String. (sut/content file)))))
+          (should= "the content" (String. ^bytes (sut/content file)))))
 
       (it "name"
         (let [file (sut/->mem-file {"/foo/bar" {:name "The Name"}} "/foo/bar")]
@@ -64,10 +64,10 @@
                           (sut/with-resource {:kind :file :path "/foo/bar.clj"})
                           server/->server)
             _         (server-helper/initialize! server)
-            {:keys [result] :as resp} (server/handle server (server-helper/->req {:method "resources/list" :id 1}))
+            {:keys [result] :as resp} (server/handle server (server-helper/->req {:method "resources/list" :id 2}))
             resources (:resources result)]
         (should= "2.0" (:jsonrpc resp))
-        (should= 1 (:id resp))
+        (should= 2 (:id resp))
         (should= [{:uri      "file:///foo/bar.clj"
                    :name     "bar.clj"
                    :mimeType "text/html"}]

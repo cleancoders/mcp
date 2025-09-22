@@ -1,5 +1,6 @@
 (ns mcp.server.core-spec
-  (:require [mcp.server.core :as sut]
+  (:require [mcp.server.core :as server]
+            [mcp.server.core :as sut]
             [mcp.server.spec-helper :as server-helper]
             [speclj.core :refer :all]))
 
@@ -20,7 +21,6 @@
   (context "message format"
 
     (context "rejects bad JSON-RPC"
-
       (it "junk json"
         (let [req  {:foo :bar}
               resp (sut/handle @server req)]
@@ -54,6 +54,8 @@
           (server-helper/should-respond-invalid-req resp "The JSON sent is not a valid JSON-RPC request object" 1)))
       )
 
+
+
     (it "returns a number id"
       (let [resp (sut/handle @server (assoc @req :method ""))]
         (server-helper/should-respond-invalid-req resp "The JSON sent is not a valid JSON-RPC request object" 1)))
@@ -67,12 +69,14 @@
 
 
     ; format edge cases
-    ; string id
-    ; batch requests
     ; make params optional
     )
 
-  (it "does")
+  (context "it sends invalid request error when id has been used before"
+    (before (server-helper/initialize! @server))
+    (it "returns invalid request when id has been sent from client before"
+      (let [resp (server/handle @server {:jsonrpc "2.0" :id 1 :method "resources/list"})]
+        (server-helper/should-respond-invalid-req resp "Request ID: 1 used previously during this session" 1))))
 
   (context "request handlers"
 
@@ -85,8 +89,8 @@
         (server-helper/should-respond-invalid-req resp "Connection already initialized" 2)))
 
     (it "undefined method"
-      (let [resp (sut/handle @server (server-helper/->req {:method "foo/bar" :id 1}))]
-        (server-helper/should-respond-unknown-method resp "Method 'foo/bar' is not supported" 1))
+      (let [resp (sut/handle @server (server-helper/->req {:method "foo/bar" :id 2}))]
+        (server-helper/should-respond-unknown-method resp "Method 'foo/bar' is not supported" 2))
       )
     )
   )

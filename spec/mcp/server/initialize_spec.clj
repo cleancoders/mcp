@@ -14,7 +14,7 @@
   (with spec {:name             "Test Server"
               :server-version   "1.0.0"
               :protocol-version "2025-06-18"
-              :capabilities     {"experimental/foo" {:handler (fn [req] :handled)}}})
+              :capabilities     {"experimental/foo" {:handler (fn [_req] :handled)}}})
   (with server (server/->server @spec))
 
   (context "lifecycle"
@@ -74,8 +74,8 @@
 
       (it "only once"
         (server/handle @server server-helper/init-req)
-        (let [resp (server/handle @server server-helper/init-req)]
-          (server-helper/should-respond-invalid-req resp "Already received initialization request")))
+        (let [resp (server/handle @server (assoc server-helper/init-req :id 2))]
+          (server-helper/should-respond-invalid-req resp "Already received initialization request" 2)))
 
       ; with capabilities
       )
