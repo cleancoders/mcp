@@ -54,8 +54,6 @@
           (server-helper/should-respond-invalid-req resp "The JSON sent is not a valid JSON-RPC request object" 1)))
       )
 
-
-
     (it "returns a number id"
       (let [resp (sut/handle @server (assoc @req :method ""))]
         (server-helper/should-respond-invalid-req resp "The JSON sent is not a valid JSON-RPC request object" 1)))
@@ -63,10 +61,6 @@
     (it "returns a string id"
       (let [resp (sut/handle @server (assoc @req :method "" :id "abc"))]
         (server-helper/should-respond-invalid-req resp "The JSON sent is not a valid JSON-RPC request object" "abc")))
-
-
-
-
 
     ; format edge cases
     ; make params optional

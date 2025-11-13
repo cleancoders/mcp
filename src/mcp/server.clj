@@ -3,6 +3,7 @@
             [clojure.string :as str]
             [mcp.core :as core]
             [mcp.server.core :as server]
+            [mcp.server.resource :as resource]
             [mcp.server.stdio :as stdio]))
 
 (def server-version "0.1.0")
@@ -84,7 +85,9 @@
                 :server-version   "1.0.0"
                 :protocol-version "2025-06-18"
                 :capabilities     {"experimental/foo" {:handler (fn [req] :handled)}}}
-        server (server/->server spec)]
+        server (-> spec
+                   (resource/with-resource {:kind :file :path "/foo/bar.clj"})
+                   server/->server)]
     (loop []
       (stdio/handle-stdio server)
       (recur))))

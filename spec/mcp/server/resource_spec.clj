@@ -6,10 +6,12 @@
             [speclj.core :refer :all])
   (:import (java.nio.file NoSuchFileException)))
 
+(declare handler)
 (declare spec)
 
 (describe "resources"
 
+  (with-stubs)
   (with spec {:name             "Test Server"
               :server-version   "1.0.0"
               :protocol-version "2025-06-18"
@@ -72,5 +74,39 @@
                    :name     "bar.clj"
                    :mimeType "text/html"}]
           resources)))
+    )
+
+  (context "->read-handler"
+
+    (with handler (sut/->read-handler [{:kind :file :path "/foo/bar.clj"}]))
+
+    (it "fails when resource not found"
+      (let [req {:jsonrpc "2.0"
+                 :id      1
+                 :method  "resources/read"
+                 :params  {:uri "file:///foo/baz.clj"}}
+            {:keys [error] :as resp} (@handler req)]
+        (should= "2.0" (:jsonrpc resp))
+        (should= 1 (:id resp))
+        (should= -32002 (:code error))
+        (should= "Resource not found" (:message error))
+        (should= "file:///foo/baz.clj" (:uri (:data error)))))
+
+    (it "returns resource when found"
+      (with-redefs [sut/->file (partial sut/->mem-file
+                                        {"/foo/bar.clj" {:content       (.getBytes "baz")
+                                                         :mime-type     "text/html"
+                                                         :name          "bar.clj"
+                                                         :last-modified (str (time/now))}})]
+        (let [req  {:jsonrpc "2.0"
+                    :id      1
+                    :method  "resources/read"
+                    :params  {:uri "file:///foo/bar.clj"}}
+              resp (@handler req)
+              file (-> resp :result :contents first)]
+          (should= "2.0" (:jsonrpc resp))
+          (should= 1 (:id resp))
+          (should= "file:///foo/bar.clj" (:uri file))
+          )))
     )
   )

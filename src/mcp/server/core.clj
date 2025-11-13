@@ -10,9 +10,11 @@
   {"initialize"                {:handler (partial init/initialize! spec state)}
    "notifications/initialized" {:handler (partial init/confirm! state)}})
 
-(defn with-resource-lists [capabilities {:keys [resources]}]
+(defn with-resources [capabilities {:keys [resources]}]
   (if (seq resources)
-    (assoc capabilities "resources/list" {:handler (resource/->list-handler resources)})
+    (-> capabilities
+        (assoc "resources/list" {:handler (resource/->list-handler resources)})
+        (assoc "resources/read" {:handler (resource/->read-handler resources)}))
     capabilities))
 
 (defn ->server [spec]
@@ -21,7 +23,7 @@
       spec
       {:state        state
        :capabilities (-> (->default-handlers spec state)
-                         (with-resource-lists spec))})))
+                         (with-resources spec))})))
 
 (defn =to [x] {:validate #(= x %) :message (format "must be equal to %s" x)})
 (defn string-or-long? [x] (or (string? x) (int? x) (char? x)))
