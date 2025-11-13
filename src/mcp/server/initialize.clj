@@ -20,7 +20,9 @@
    :result  {:protocolVersion (:protocol-version spec)
              :serverInfo      {:name    (:name spec)
                                :title   (:title spec)
-                               :version (:server-version spec)}}})
+                               :version (:server-version spec)}
+             :capabilities    (merge {}
+                                     (when (seq (:resources spec)) {:resources {}}))}})
 
 (defn maybe-invalid-params [req id]
   (when (schema/error? req)

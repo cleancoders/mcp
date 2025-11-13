@@ -8,9 +8,11 @@
 
 (defn ->rpc-error
   ([kind data] (->rpc-error kind nil data))
-  ([kind id data] {:jsonrpc "2.0"
-                   :id      id
-                   :error   (merge (errors kind) {:data data})}))
+  ([kind id data]
+   (merge
+     (when id {:id id})
+     {:jsonrpc "2.0"
+      :error   (merge (errors kind) {:data data})})))
 
 (defn uninitialized [id]
   (->rpc-error :uninitialized id "Must initialize connection before invoking methods"))

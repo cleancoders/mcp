@@ -1,6 +1,7 @@
 (ns mcp.server.initialize-spec
   (:require [mcp.server.core :as server]
             [mcp.server.initialize :as sut]
+            [mcp.server.resource :as resource]
             [mcp.server.spec-helper :as server-helper]
             [medley.core :as medley]
             [speclj.core :refer :all]))
@@ -72,12 +73,21 @@
               resp   (server/handle server server-helper/init-req)]
           (should= "The Title" (-> resp :result :serverInfo :title))))
 
+      (context "with capabilities"
+
+        (it "resources"
+          (let [capabilities (-> @spec
+                                 (resource/with-resource {:kind :file :path "/foo/bar.clj"})
+                                 (sut/initialize! (atom {}) server-helper/init-req)
+                                 :result
+                                 :capabilities)]
+            (should-contain :resources (keys capabilities))))
+        )
+
       (it "only once"
         (server/handle @server server-helper/init-req)
         (let [resp (server/handle @server (assoc server-helper/init-req :id 2))]
           (server-helper/should-respond-invalid-req resp "Already received initialization request" 2)))
-
-      ; with capabilities
       )
 
     (it "receives initialization notification"
