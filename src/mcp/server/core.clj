@@ -21,7 +21,8 @@
 (defn with-tools [capabilities {:keys [tools]}]
   (if (seq tools)
     (-> capabilities
-        (assoc "tools/list" {:handler (tool/->list-handler tools)}))
+        (assoc "tools/list" {:handler (tool/->list-handler tools)})
+        (assoc "tools/call" {:handler (tool/->call-handler tools)}))
     capabilities))
 
 (defn ->server [spec]

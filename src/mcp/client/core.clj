@@ -20,7 +20,7 @@
 
 (defn build-notification [method]
   (-> {:method (->notifications-method method)}
-      core/add-rpc-version))
+      core/with-version))
 
 (defn build-request
   ([id method] (build-request id method {}))
@@ -28,4 +28,4 @@
    (-> {:id     id
         :method method
         :params (ccc/->options params)}
-       core/add-rpc-version)))
+       core/with-version)))

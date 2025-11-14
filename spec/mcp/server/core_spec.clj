@@ -108,5 +108,20 @@
         (should= [(-> tool
                       (dissoc :handler)
                       (assoc :inputSchema {:type "object" :properties {}}))]
-          tools))))
+          tools)))
+
+    (it "tools/call"
+      (let [tool   {:name        "foo"
+                    :title       "I'm to foo tool, the fool!"
+                    :description "a foolish tool"
+                    :handler     (fn [req] (prn (str "foo-" (:id req))))
+                    :inputSchema {}}
+            server (-> @spec
+                       (tool/with-tool tool)
+                       server/->server)
+            _      (server-helper/initialize! server)
+            req    {:method "tools/call"
+                    :id     2
+                    :params {:name "foo"}}]
+        (should-contain "foo-2" (with-out-str (server/handle server (server-helper/->req req)))))))
   )

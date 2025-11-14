@@ -1,5 +1,7 @@
 (ns mcp.server.tool
-  (:require [c3kit.apron.doc :as doc]))
+  (:require [c3kit.apron.corec :as ccc]
+            [c3kit.apron.doc :as doc]
+            [mcp.core :as core]))
 
 (def default-schema
   {:type       "object"
@@ -23,3 +25,16 @@
 
 (defn with-tool [server-spec tool-spec]
   (update server-spec :tools conj tool-spec))
+
+(defn ->call-handler [tools]
+  (fn [{:keys [params] :as req}]
+    (let [{:keys [handler] :as tool} (ccc/ffilter #(= (:name params) (:name %)) tools)]
+      (if tool
+        (core/with-version
+          {:id (:id req)
+           :result {:content [{:type "text" :text (handler req)}]}})
+        (core/with-version
+          {:id (:id req)
+           :error
+           {:code    -32602
+            :message (format "Unknown tool: %s" (:name params))}})))))
