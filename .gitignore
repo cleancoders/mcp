@@ -63,3 +63,7 @@ mcp.iml
 
 # Log file
 *.log
+
+# clj-kondo
+/.clj-kondo/*
+
