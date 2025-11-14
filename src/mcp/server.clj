@@ -1,13 +1,14 @@
 (ns mcp.server
   (:require [mcp.server.core :as server]
             [mcp.server.resource :as resource]
-            [mcp.server.stdio :as stdio]))
+            [mcp.server.stdio :as stdio]
+            [mcp.server.tool :as tool]))
 
 (def tool
   {:name        "foo"
    :title       "I'm to foo tool, the fool!"
    :description "a foolish tool"
-   :handler     (fn [_] (prn "handled!"))                   ; invoke me! witj-out-str
+   :handler     (fn [_] "Hello, Claudius!")
    :inputSchema {}})
 
 (defn -main [& args]
@@ -17,6 +18,7 @@
                 :capabilities     {"experimental/foo" {:handler (fn [req] :handled)}}}
         server (-> spec
                    (resource/with-resource {:kind :file :path "/foo/bar.clj"})
+                   (tool/with-tool tool)
                    server/->server)]
     (loop []
       (stdio/handle-stdio server)

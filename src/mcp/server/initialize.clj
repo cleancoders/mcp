@@ -22,7 +22,8 @@
                                :title   (:title spec)
                                :version (:server-version spec)}
              :capabilities    (merge {}
-                                     (when (seq (:resources spec)) {:resources {}}))}})
+                                     (when (seq (:resources spec)) {:resources {}})
+                                     (when (seq (:tools spec)) {:tools {}}))}})
 
 (defn maybe-invalid-params [req id]
   (when (schema/error? req)

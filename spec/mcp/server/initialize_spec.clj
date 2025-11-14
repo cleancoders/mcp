@@ -3,6 +3,7 @@
             [mcp.server.initialize :as sut]
             [mcp.server.resource :as resource]
             [mcp.server.spec-helper :as server-helper]
+            [mcp.server.tool :as tool]
             [medley.core :as medley]
             [speclj.core :refer :all]))
 
@@ -82,6 +83,14 @@
                                  :result
                                  :capabilities)]
             (should-contain :resources (keys capabilities))))
+
+        (it "tools"
+          (let [capabilities (-> @spec
+                                 (tool/with-tool {:name "foo"})
+                                 (sut/initialize! (atom {}) server-helper/init-req)
+                                 :result
+                                 :capabilities)]
+            (should-contain :tools (keys capabilities))))
         )
 
       (it "only once"
