@@ -2,6 +2,7 @@
   (:require [mcp.server.core :as server]
             [mcp.server.core :as sut]
             [mcp.server.spec-helper :as server-helper]
+            [mcp.server.tool :as tool]
             [speclj.core :refer :all]))
 
 (declare spec)
@@ -87,4 +88,25 @@
         (server-helper/should-respond-unknown-method resp "Method 'foo/bar' is not supported" 2))
       )
     )
+
+  (context "defines methods"
+
+    (it "tools/list"
+      (let [tool   {:name        "foo"
+                    :title       "I'm to foo tool, the fool!"
+                    :description "a foolish tool"
+                    :handler     (fn [req] :handled!)
+                    :inputSchema {}}
+            server (-> @spec
+                       (tool/with-tool tool)
+                       server/->server)
+            _      (server-helper/initialize! server)
+            {:keys [result] :as resp} (server/handle server (server-helper/->req {:method "tools/list" :id 2}))
+            tools  (:tools result)]
+        (should= "2.0" (:jsonrpc resp))
+        (should= 2 (:id resp))
+        (should= [(-> tool
+                      (dissoc :handler)
+                      (assoc :inputSchema {:type "object" :properties {}}))]
+          tools))))
   )

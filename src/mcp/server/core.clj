@@ -4,6 +4,7 @@
             [mcp.server.resource :as resource]
             [mcp.server.errors :as errors]
             [mcp.server.initialize :as init]
+            [mcp.server.tool :as tool]
             [medley.core :as medley]))
 
 (defn ->default-handlers [spec state]
@@ -17,13 +18,20 @@
         (assoc "resources/read" {:handler (resource/->read-handler resources)}))
     capabilities))
 
+(defn with-tools [capabilities {:keys [tools]}]
+  (if (seq tools)
+    (-> capabilities
+        (assoc "tools/list" {:handler (tool/->list-handler tools)}))
+    capabilities))
+
 (defn ->server [spec]
   (let [state (atom {:seen-ids #{}})]
     (medley/deep-merge
       spec
       {:state        state
        :capabilities (-> (->default-handlers spec state)
-                         (with-resources spec))})))
+                         (with-resources spec)
+                         (with-tools spec))})))
 
 (defn =to [x] {:validate #(= x %) :message (format "must be equal to %s" x)})
 (defn string-or-long? [x] (or (string? x) (int? x) (char? x)))
