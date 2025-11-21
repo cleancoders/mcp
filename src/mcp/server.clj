@@ -1,6 +1,5 @@
 (ns mcp.server
-  (:require [c3kit.apron.schema :as schema]
-            [mcp.server.core :as server]
+  (:require [mcp.server.core :as server]
             [mcp.server.resource :as resource]
             [mcp.server.stdio :as stdio]
             [mcp.server.tool :as tool]
@@ -13,8 +12,8 @@
    :handler     (fn [_] "Hello, Claudius!")
    :inputSchema {}})
 
-(defn -main [& args]
-  (let [spec   {:name             "Test Server"
+(defn -main [& _args]
+  (let [spec   {:name             "Clean Code MCP"
                 :server-version   "0.0.1"
                 :protocol-version "2025-06-18"
                 :capabilities     {"experimental/foo" {:handler (fn [_req] "handled")}}}

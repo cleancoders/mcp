@@ -94,7 +94,7 @@
       (let [tool   {:name        "foo"
                     :title       "I'm to foo tool, the fool!"
                     :description "a foolish tool"
-                    :handler     (fn [req] :handled!)
+                    :handler     (fn [_req] :handled!)
                     :inputSchema {}}
             server (-> @spec
                        (tool/with-tool tool)
