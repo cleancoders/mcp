@@ -1,6 +1,5 @@
 (ns mcp.server.core-spec
-  (:require [mcp.server.core :as server]
-            [mcp.server.core :as sut]
+  (:require [mcp.server.core :as sut]
             [mcp.server.spec-helper :as server-helper]
             [mcp.server.tool :as tool]
             [speclj.core :refer :all]))
@@ -70,7 +69,7 @@
   (context "it sends invalid request error when id has been used before"
     (before (server-helper/initialize! @server))
     (it "returns invalid request when id has been sent from client before"
-      (let [resp (server/handle @server {:jsonrpc "2.0" :id 1 :method "resources/list"})]
+      (let [resp (sut/handle @server {:jsonrpc "2.0" :id 1 :method "resources/list"})]
         (server-helper/should-respond-invalid-req resp "Request ID: 1 used previously during this session" 1))))
 
   (context "request handlers"
@@ -99,9 +98,9 @@
                     :inputSchema {}}
             server (-> @spec
                        (tool/with-tool tool)
-                       server/->server)
+                       sut/->server)
             _      (server-helper/initialize! server)
-            {:keys [result] :as resp} (server/handle server (server-helper/->req {:method "tools/list" :id 2}))
+            {:keys [result] :as resp} (sut/handle server (server-helper/->req {:method "tools/list" :id 2}))
             tools  (:tools result)]
         (should= "2.0" (:jsonrpc resp))
         (should= 2 (:id resp))
@@ -118,10 +117,10 @@
                     :inputSchema {}}
             server (-> @spec
                        (tool/with-tool tool)
-                       server/->server)
+                       sut/->server)
             _      (server-helper/initialize! server)
             req    {:method "tools/call"
                     :id     2
                     :params {:name "foo"}}]
-        (should-contain "foo-2" (with-out-str (server/handle server (server-helper/->req req)))))))
+        (should-contain "foo-2" (with-out-str (sut/handle server (server-helper/->req req)))))))
   )

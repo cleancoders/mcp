@@ -1,4 +1,4 @@
 #!/bin/bash
 
-cd "/Users/sajensen/code/cc/mcp"
+cd "/Users/scoops/ccProjects/mcp"
 exec clojure -M:serve

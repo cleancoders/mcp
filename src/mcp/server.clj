@@ -1,8 +1,10 @@
 (ns mcp.server
-  (:require [mcp.server.core :as server]
+  (:require [c3kit.apron.schema :as schema]
+            [mcp.server.core :as server]
             [mcp.server.resource :as resource]
             [mcp.server.stdio :as stdio]
-            [mcp.server.tool :as tool]))
+            [mcp.server.tool :as tool]
+            [mcp.server.shell :as shell]))
 
 (def tool
   {:name        "foo"
@@ -13,12 +15,13 @@
 
 (defn -main [& args]
   (let [spec   {:name             "Test Server"
-                :server-version   "1.0.0"
+                :server-version   "0.0.1"
                 :protocol-version "2025-06-18"
-                :capabilities     {"experimental/foo" {:handler (fn [req] :handled)}}}
+                :capabilities     {"experimental/foo" {:handler (fn [_req] "handled")}}}
         server (-> spec
                    (resource/with-resource {:kind :file :path "/foo/bar.clj"})
                    (tool/with-tool tool)
+                   (tool/with-tool shell/tool)
                    server/->server)]
     (loop []
       (stdio/handle-stdio server)
