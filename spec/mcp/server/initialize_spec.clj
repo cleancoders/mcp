@@ -77,20 +77,14 @@
       (context "with capabilities"
 
         (it "resources"
-          (let [capabilities (-> @spec
-                                 (resource/with-resource {:kind :file :path "/foo/bar.clj"})
-                                 (sut/initialize! (atom {}) server-helper/init-req)
-                                 :result
-                                 :capabilities)]
-            (should-contain :resources (keys capabilities))))
+          (let [spec (-> @spec (resource/with-resource {:kind :file :path "/foo/bar.clj"}))
+                response (sut/initialize! spec (atom {}) server-helper/init-req)]
+            (should= (server-helper/initialized-response spec) response)))
 
         (it "tools"
-          (let [capabilities (-> @spec
-                                 (tool/with-tool {:name "foo"})
-                                 (sut/initialize! (atom {}) server-helper/init-req)
-                                 :result
-                                 :capabilities)]
-            (should-contain :tools (keys capabilities))))
+          (let [spec (-> @spec (tool/with-tool {:name "foo"}))
+                response (sut/initialize! spec (atom {}) server-helper/init-req)]
+            (should= (server-helper/initialized-response spec) response)))
         )
 
       (it "only once"

@@ -52,3 +52,14 @@
 (defn initialize! [server]
   (server/handle server init-req)
   (server/handle server {:jsonrpc "2.0" :method "notifications/initialized"}))
+
+(defn initialized-response [spec]
+  {:jsonrpc "2.0"
+   :id      1
+   :result  {:protocolVersion (:protocol-version spec)
+             :serverInfo      {:name    (:name spec)
+                               :title   (:title spec)
+                               :version (:server-version spec)}
+             :capabilities    (merge {}
+                                     (when (seq (:resources spec)) {:resources {}})
+                                     (when (seq (:tools spec)) {:tools {}}))}})
