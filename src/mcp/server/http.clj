@@ -4,7 +4,7 @@
 
 (def localhost-regex #"^https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$")
 
-(defn- matches-one? [re s]
+(defn- matches? [re s]
   (boolean (seq (re-matches re s))))
 
 (defn- handled-response [server request]
@@ -19,7 +19,7 @@
    :body "Forbidden: Invalid origin"})
 
 (defn- allowed-origin? [origin http-config]
-  (some #(matches-one? % origin) (:allowed-origins http-config)))
+  (some #(matches? % origin) (:allowed-origins http-config)))
 
 (defn- ->origin [req]
   (get-in req [:headers "Origin"]))
