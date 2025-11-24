@@ -19,16 +19,17 @@
    :body "Forbidden: Invalid origin"})
 
 (defn- allowed-origin? [origin http-config]
-  (let [allowed-origins (:allowed-origins http-config #{localhost-regex})]
-    (some #(matches-one? % origin) allowed-origins)))
+  (some #(matches-one? % origin) (:allowed-origins http-config)))
 
 (defn- ->origin [req]
   (get-in req [:headers "Origin"]))
 
+(def default-http-config {:allowed-origins #{localhost-regex}})
+
 ;; TODO - support text/event-stream content-type & lots more
 (defn handle-request
   ([request server]
-   (handle-request request server {}))
+   (handle-request request server default-http-config))
   ([request server http-config]
    (if (allowed-origin? (->origin request) http-config)
      (handled-response server request)
