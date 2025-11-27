@@ -1,6 +1,8 @@
 (ns mcp.server.http-spec
   (:require [c3kit.apron.utilc :as utilc]
+            [clojure.java.io :as io]
             [mcp.server.core :as server]
+            [mcp.server.errors :as errors]
             [mcp.server.http :as sut]
             [mcp.server.spec-helper :as server-helper]
             [speclj.core :refer :all]))
@@ -15,15 +17,24 @@
 (defn- with-origin [request origin]
   (assoc-in request [:headers "Origin"] origin))
 
-(defn- init-resp [spec]
+(defn- ->resp [body]
   {:status 200
    :headers {"Content-Type" "application/json"}
-   :body (utilc/->json (server-helper/initialized-response spec))})
+   :body (utilc/->json body)})
+
+(defn- init-resp [spec]
+  (->resp (server-helper/initialized-response spec)))
 
 (def forbidden-resp
   {:status 403
    :headers {"Content-Type" "text/plain"}
    :body "Forbidden: Invalid origin"})
+
+(defn- ->request [req]
+  {:request-method :post
+   :headers {"Origin" "http://localhost"
+             "Accept" "application/json"}
+   :body (io/input-stream (.getBytes req))})
 
 (describe "http"
 
@@ -33,13 +44,14 @@
               :capabilities     {"experimental/foo" {:handler (fn [_] :handled)}}})
   (with server (server/->server @spec))
 
-  (context "origin validation"
-    (with request {:request-method :post
-                   :headers {"Origin" "http://localhost"
-                             "Accept" "application/json"}
-                   :body (utilc/->json server-helper/init-req)})
+  (with request (->request (utilc/->json server-helper/init-req)))
 
+  (context "origin validation"
     (context "default config"
+      (it "forbids empty origin"
+        (should= forbidden-resp
+                 (sut/handle-request (with-origin @request nil) @server)))
+
       (it "forbids non-localhost"
         (should= forbidden-resp
                  (sut/handle-request (with-origin @request "http://not-localhost") @server))
@@ -137,6 +149,14 @@
                      @server
                      {:allowed-origins #{(re-pattern origin)}}))))))
 
-  #_(it "handles POST request"
-    (should= {}
-             (sut/handle-request @request @server))))
+  (it "responds to initialized with HTTP OK"
+    (let [json (utilc/->json {:jsonrpc "2.0" :id 2 :method "notifications/initialized" :params {}})
+          req (->request json)]
+      (sut/handle-request @request @server)
+      (should= {:status 200} (sut/handle-request req @server))))
+
+  (it "doesn't throw when body not json"
+    (let [req (->request "blah")
+          expected (->resp (errors/invalid-request "Request is not a valid JSON string"))
+          resp (sut/handle-request req @server)]
+      (should= expected resp))))
