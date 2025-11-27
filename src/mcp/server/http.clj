@@ -3,11 +3,6 @@
             [mcp.server.core :as server]
             [mcp.server.errors :as errors]))
 
-(def localhost-regex #"^https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$")
-
-(defn- matches? [re s]
-  (boolean (seq (re-matches re s))))
-
 (defn- http-req->rpc [request]
   (try
     (utilc/<-json-kw (slurp (:body request)))
@@ -34,12 +29,17 @@
    :headers {"Content-Type" "text/plain"}
    :body "Forbidden: Invalid origin"})
 
+(defn- matches? [re s]
+  (boolean (seq (re-matches re s))))
+
 (defn- allowed-origin? [origin http-config]
   (when origin
     (some #(matches? % origin) (:allowed-origins http-config))))
 
 (defn- ->origin [req]
   (get-in req [:headers "Origin"]))
+
+(def localhost-regex #"^https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$")
 
 (def default-http-config {:allowed-origins #{localhost-regex}})
 

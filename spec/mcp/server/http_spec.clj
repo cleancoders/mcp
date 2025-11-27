@@ -90,7 +90,9 @@
 
         (it "accepts http://127.0.0.1:1234"
           (should= (init-resp @spec)
-                   (sut/handle-request (with-origin @request "http://127.0.0.1:1234") @server)))))
+                   (sut/handle-request (with-origin @request "http://127.0.0.1:1234") @server)))
+        )
+      )
 
     (context "custom origin validation"
       (it "allows an exact match"
@@ -139,7 +141,8 @@
                    (sut/handle-request
                      (with-origin @request "http://my-origin.com")
                      @server
-                     {:allowed-origins #{(re-pattern @origin)}}))))
+                     {:allowed-origins #{(re-pattern @origin)}})))
+        )
 
       (it "forbids regex non-match"
         (let [origin "http://my-origin.*"]
@@ -147,7 +150,9 @@
                    (sut/handle-request
                      (with-origin @request "http://my-or1gin.com")
                      @server
-                     {:allowed-origins #{(re-pattern origin)}}))))))
+                     {:allowed-origins #{(re-pattern origin)}}))))
+      )
+    )
 
   (it "responds to initialized with HTTP OK"
     (let [json (utilc/->json {:jsonrpc "2.0" :id 2 :method "notifications/initialized" :params {}})
@@ -159,4 +164,5 @@
     (let [req (->request "blah")
           expected (->resp (errors/invalid-request "Request is not a valid JSON string"))
           resp (sut/handle-request req @server)]
-      (should= expected resp))))
+      (should= expected resp)))
+  )
