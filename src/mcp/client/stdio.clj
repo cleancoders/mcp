@@ -8,7 +8,7 @@
   (send! [this jrpc-payload])
   (read! [this]))
 
-(deftype StdioTransport [^InputStream in ^OutputStream out]
+(deftype IOTransport [^InputStream in ^OutputStream out]
   Transport
   (send! [_ jrpc-payload]
     (with-open [writer (io/writer out)]

@@ -44,7 +44,7 @@
     (with json-req (utilc/->json (core/build-request 2 "tools/list")))
     (with json-resp (utilc/->json (server/handle server (utilc/<-json-kw @json-req))))
     (with input-stream (->input-stream @json-resp))
-    (with impl (sut/->StdioTransport @input-stream @output-stream))
+    (with impl (sut/->IOTransport @input-stream @output-stream))
 
     (it "sends request through output-stream"
       (sut/raw-request! @impl @json-req)
@@ -60,7 +60,7 @@
     (with request (core/build-request 2 "tools/list"))
     (with response (server/handle server @request))
     (with input-stream (->input-stream (utilc/->json @response)))
-    (with impl (sut/->StdioTransport @input-stream @output-stream))
+    (with impl (sut/->IOTransport @input-stream @output-stream))
 
     (it "sends request through output-stream as json"
       (sut/request! @impl @request)
@@ -72,7 +72,7 @@
 
     (it "throws if server response is not json"
       (let [input-stream (->input-stream "not json")
-            impl (sut/->StdioTransport input-stream @output-stream)]
+            impl (sut/->IOTransport input-stream @output-stream)]
         (should-throw (sut/request! impl @request))))
     )
 
@@ -81,7 +81,7 @@
     (with request (core/->initialize-request @client))
     (with response (server/handle server @request))
     (with input-stream (->input-stream (utilc/->json @response)))
-    (with impl (sut/->StdioTransport @input-stream @output-stream))
+    (with impl (sut/->IOTransport @input-stream @output-stream))
 
     (it "sends request through output-stream"
       (sut/request-initialize! @impl @client)
@@ -96,7 +96,7 @@
 
     (with json-req core/initialized-notification)
     (with input-stream nil)
-    (with impl (sut/->StdioTransport @input-stream @output-stream))
+    (with impl (sut/->IOTransport @input-stream @output-stream))
 
     (it "sends request through output-stream"
       (sut/notify-initialized! @impl)
