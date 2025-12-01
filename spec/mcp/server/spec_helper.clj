@@ -1,5 +1,6 @@
 (ns mcp.server.spec-helper
   (:require [mcp.server.core :as server]
+            [mcp.server.tool :as tool]
             [speclj.core :refer :all]))
 
 (defmacro should-respond-invalid-req
@@ -63,3 +64,17 @@
              :capabilities    (merge {}
                                      (when (seq (:resources spec)) {:resources {}})
                                      (when (seq (:tools spec)) {:tools {}}))}})
+
+(def test-server-tool {:name        "foo"
+                   :title       "I'm to foo tool, the fool!"
+                   :description "a foolish tool"
+                   :handler     (fn [_req] "handled!")
+                   :inputSchema {}})
+
+(def test-server-spec {:name             "Test Server"
+                   :server-version   "1.0.0"
+                   :protocol-version "2025-06-18"})
+
+(def test-server (-> test-server-spec
+                (tool/with-tool test-server-tool)
+                server/->server))

@@ -6,6 +6,7 @@
             [mcp.client.core :as core]
             [mcp.server.core :as server]
             [mcp.server.tool :as tool]
+            [mcp.server.spec-helper :as server-helper]
             [speclj.core :refer :all])
   (:import [java.io ByteArrayOutputStream ByteArrayInputStream]))
 
@@ -29,19 +30,9 @@
 (defn- ->input-stream [s]
   (ByteArrayInputStream. (.getBytes s)))
 
-(describe "client stdio"
+(def server server-helper/test-server)
 
-  (with server-tool {:name        "foo"
-                     :title       "I'm to foo tool, the fool!"
-                     :description "a foolish tool"
-                     :handler     (fn [_req] "handled!")
-                     :inputSchema {}})
-  (with server-spec {:name             "Test Server"
-                     :server-version   "1.0.0"
-                     :protocol-version "2025-06-18"})
-  (with server (-> @server-spec
-                   (tool/with-tool @server-tool)
-                   server/->server))
+(describe "client stdio"
 
   (with client-info {:name    "ExampleClient"
                      :title   "Example Client Display Name"
@@ -54,7 +45,7 @@
   (context "raw-request!"
 
     (with json-req (utilc/->json (core/build-request 2 "tools/list")))
-    (with json-resp (utilc/->json (server/handle @server (utilc/<-json-kw @json-req))))
+    (with json-resp (utilc/->json (server/handle server (utilc/<-json-kw @json-req))))
     (with input-stream (->input-stream @json-resp))
 
     (it "sends request through output-stream"
@@ -69,7 +60,7 @@
   (context "request!"
 
     (with request (core/build-request 2 "tools/list"))
-    (with response (server/handle @server @request))
+    (with response (server/handle server @request))
     (with input-stream (->input-stream (utilc/->json @response)))
 
     (it "sends request through output-stream as json"
@@ -88,7 +79,7 @@
   (context "request-initialize!"
 
     (with request (core/->initialize-request @client))
-    (with response (server/handle @server @request))
+    (with response (server/handle server @request))
     (with input-stream (->input-stream (utilc/->json @response)))
 
     (it "sends request through output-stream"
