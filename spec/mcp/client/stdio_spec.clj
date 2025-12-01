@@ -10,10 +10,6 @@
             [speclj.core :refer :all])
   (:import [java.io ByteArrayOutputStream ByteArrayInputStream]))
 
-(declare server-tool)
-(declare server-spec)
-(declare server)
-
 (declare client-info)
 (declare client)
 
