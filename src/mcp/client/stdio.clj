@@ -11,7 +11,10 @@
     (slurp reader)))
 
 (defn request! [edn-rpc-payload ^InputStream in ^OutputStream out]
-  (utilc/<-json-kw (raw-request! (utilc/->json edn-rpc-payload) in out)))
+  (-> edn-rpc-payload
+      utilc/->json
+      (raw-request! in out)
+      utilc/<-json-kw))
 
 (defn request-initialize! [client ^InputStream in ^OutputStream out]
   (request! (core/->initialize-request client) in out))

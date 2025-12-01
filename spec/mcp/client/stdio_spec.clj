@@ -79,6 +79,10 @@
 
     (it "returns response through input-stream as edn"
       (should= @response (sut/request! @request @input-stream @output-stream)))
+
+    (it "throws if server response is not json"
+      (let [input-stream (->input-stream "not json")]
+        (should-throw (sut/request! @request input-stream @output-stream))))
     )
 
   (context "request-initialize!"
