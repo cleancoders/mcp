@@ -2,19 +2,6 @@
   (:require [c3kit.apron.corec :as ccc]
             [mcp.core :as core]))
 
-(def client-info {:name    "ExampleClient"
-                  :title   "Example Client Display Name"
-                  :version "1.0.0"})
-
-(def params {:protocolVersion core/protocol-version
-             :capabilities    {:roots       {:listChanged true}
-                               :sampling    {}
-                               :elicitation {}}
-             :clientInfo      client-info})
-
-;---^^ example code while we build, probably needs to move to spec ^^ ----
-;--- Tested code below ---;
-
 (defn ->notifications-method [method]
   (keyword "notifications" (name method)))
 
@@ -29,3 +16,15 @@
         :method method
         :params (ccc/->options params)}
        core/with-version)))
+
+(defn ->client [client-info]
+  {:protocolVersion core/protocol-version
+   :capabilities {:roots       {:listChanged true}
+                  :sampling    {}
+                  :elicitation {}}
+   :clientInfo client-info})
+
+(defn ->initialize-request [client]
+  (build-request 1 :initialize client))
+
+(def initialized-notification (build-notification :initialized))
