@@ -71,10 +71,10 @@
     )
 
   (it "->initialize-request"
-    (should= (sut/build-request 1 :initialize @client)
+    (should= (sut/build-request 1 "initialize" @client)
              (sut/->initialize-request @client)))
 
   (it "initialized-notification"
-    (should= (sut/build-notification :initialized)
+    (should= (sut/build-notification "initialized")
              sut/initialized-notification))
   )

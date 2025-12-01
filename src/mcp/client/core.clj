@@ -25,6 +25,6 @@
    :clientInfo client-info})
 
 (defn ->initialize-request [client]
-  (build-request 1 :initialize client))
+  (build-request 1 "initialize" client))
 
-(def initialized-notification (build-notification :initialized))
+(def initialized-notification (build-notification "initialized"))
