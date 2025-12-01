@@ -4,27 +4,32 @@
             [mcp.client.core :as core])
   (:import [java.io InputStream OutputStream]))
 
-(defn send! [jrpc-payload ^OutputStream out]
-  (with-open [writer (io/writer out)]
-    (spit writer jrpc-payload)))
+(defprotocol Transport
+  (send! [this jrpc-payload])
+  (read! [this]))
 
-(defn read! [^InputStream in]
-  (with-open [reader (io/reader in)]
-    (slurp reader)))
+(deftype StdioTransport [^InputStream in ^OutputStream out]
+  Transport
+  (send! [_ jrpc-payload]
+    (with-open [writer (io/writer out)]
+      (spit writer jrpc-payload)))
+  (read! [_]
+    (with-open [reader (io/reader in)]
+      (slurp reader))))
 
-(defn raw-request! [jrpc-payload ^InputStream in ^OutputStream out]
-  (send! jrpc-payload out)
-  (read! in))
+(defn raw-request! [transport jrpc-payload]
+  (send! transport jrpc-payload)
+  (read! transport))
 
-(defn request! [edn-rpc-payload ^InputStream in ^OutputStream out]
-  (-> edn-rpc-payload
-      utilc/->json
-      (raw-request! in out)
-      utilc/<-json-kw))
+(defn request! [transport edn-rpc-payload]
+  (->> edn-rpc-payload
+       utilc/->json
+       (raw-request! transport)
+       utilc/<-json-kw))
 
-(defn request-initialize! [client ^InputStream in ^OutputStream out]
-  (request! (core/->initialize-request client) in out))
+(defn request-initialize! [transport client]
+  (request! transport (core/->initialize-request client)))
 
-(defn notify-initialized! [^OutputStream out]
-  (send! (utilc/->json core/initialized-notification) out))
+(defn notify-initialized! [transport]
+  (send! transport (utilc/->json core/initialized-notification)))
 
