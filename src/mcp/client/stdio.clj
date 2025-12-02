@@ -2,20 +2,20 @@
   (:require [c3kit.apron.utilc :as utilc]
             [clojure.java.io :as io]
             [mcp.client.core :as core])
-  (:import [java.io InputStream OutputStream]))
+  (:import [java.io Reader Writer]))
 
 (defprotocol Transport
   (send! [this jrpc-payload])
   (read! [this]))
 
-(deftype IOTransport [^InputStream in ^OutputStream out]
+(deftype IOTransport [^Reader reader ^Writer writer]
   Transport
   (send! [_ jrpc-payload]
-    (with-open [writer (io/writer out)]
-      (spit writer jrpc-payload)))
+    (.write writer ^String jrpc-payload)
+    (.newLine writer)
+    (.flush writer))
   (read! [_]
-    (with-open [reader (io/reader in)]
-      (slurp reader))))
+    (.readLine reader)))
 
 (defn raw-request! [transport jrpc-payload]
   (send! transport jrpc-payload)

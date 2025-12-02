@@ -1,11 +1,9 @@
 (ns mcp.client.stdio-spec
-  (:require [c3kit.apron.corec :as ccc]
-            [c3kit.apron.utilc :as utilc]
+  (:require [c3kit.apron.utilc :as utilc]
             [clojure.java.io :as io]
             [mcp.client.stdio :as sut]
             [mcp.client.core :as core]
             [mcp.server.core :as server]
-            [mcp.server.tool :as tool]
             [mcp.server.spec-helper :as server-helper]
             [speclj.core :refer :all])
   (:import [java.io ByteArrayOutputStream ByteArrayInputStream]))
@@ -44,15 +42,25 @@
     (with json-req (utilc/->json (core/build-request 2 "tools/list")))
     (with json-resp (utilc/->json (server/handle server (utilc/<-json-kw @json-req))))
     (with input-stream (->input-stream @json-resp))
-    (with impl (sut/->IOTransport @input-stream @output-stream))
+    (with impl (sut/->IOTransport (io/reader @input-stream) (io/writer @output-stream)))
 
     (it "sends request through output-stream"
       (sut/raw-request! @impl @json-req)
       (with-open [reader (->reader @output-stream)]
-        (should= @json-req (slurp reader))))
+        (should= (str @json-req "\n") (slurp reader))))
 
     (it "receives response through input-stream"
       (should= @json-resp (sut/raw-request! @impl @json-req)))
+
+    (it "can handle multiple procedure calls"
+      (let [json-req-2 (utilc/->json (core/build-request 3 "tools/list"))
+            json-resp-2 (utilc/->json (server/handle server (utilc/<-json-kw json-req-2)))
+            input-stream (->input-stream (str @json-resp "\n" json-resp-2 "\n"))
+            impl (sut/->IOTransport (io/reader input-stream) (io/writer @output-stream))]
+        (should= @json-resp (sut/raw-request! impl @json-req))
+        (should= json-resp-2 (sut/raw-request! impl json-req-2))
+        (with-open [reader (->reader @output-stream)]
+          (should= (str @json-req "\n" json-req-2 "\n") (slurp reader)))))
     )
 
   (context "request!"
@@ -60,19 +68,19 @@
     (with request (core/build-request 2 "tools/list"))
     (with response (server/handle server @request))
     (with input-stream (->input-stream (utilc/->json @response)))
-    (with impl (sut/->IOTransport @input-stream @output-stream))
+    (with impl (sut/->IOTransport (io/reader @input-stream) (io/writer @output-stream)))
 
     (it "sends request through output-stream as json"
       (sut/request! @impl @request)
       (with-open [reader (->reader @output-stream)]
-        (should= (utilc/->json @request) (slurp reader))))
+        (should= (str (utilc/->json @request) "\n") (slurp reader))))
 
     (it "returns response through input-stream as edn"
       (should= @response (sut/request! @impl @request)))
 
     (it "throws if server response is not json"
       (let [input-stream (->input-stream "not json")
-            impl (sut/->IOTransport input-stream @output-stream)]
+            impl (sut/->IOTransport (io/reader input-stream) (io/writer @output-stream))]
         (should-throw (sut/request! impl @request))))
     )
 
@@ -81,12 +89,12 @@
     (with request (core/->initialize-request @client))
     (with response (server/handle server @request))
     (with input-stream (->input-stream (utilc/->json @response)))
-    (with impl (sut/->IOTransport @input-stream @output-stream))
+    (with impl (sut/->IOTransport (io/reader @input-stream) (io/writer @output-stream)))
 
     (it "sends request through output-stream"
       (sut/request-initialize! @impl @client)
       (with-open [reader (->reader @output-stream)]
-        (should= (utilc/->json @request) (slurp reader))))
+        (should= (str (utilc/->json @request) "\n") (slurp reader))))
 
     (it "receives response through input-stream"
       (should= @response (sut/request-initialize! @impl @client)))
@@ -95,13 +103,12 @@
   (context "notify-initialized!"
 
     (with json-req core/initialized-notification)
-    (with input-stream nil)
-    (with impl (sut/->IOTransport @input-stream @output-stream))
+    (with impl (sut/->IOTransport nil (io/writer @output-stream)))
 
     (it "sends request through output-stream"
       (sut/notify-initialized! @impl)
       (with-open [reader (->reader @output-stream)]
-        (should= (utilc/->json @json-req) (slurp reader))))
+        (should= (str (utilc/->json @json-req) "\n") (slurp reader))))
 
     (it "doesn't expect response"
       (should-be-nil (sut/notify-initialized! @impl)))
