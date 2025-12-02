@@ -13,19 +13,19 @@
 
     (it "makes an initialized notification"
       (let [{:keys [method]} (sut/build-notification :initialized)]
-        (should= :notifications/initialized method)))
+        (should= "notifications/initialized" method)))
 
     (it "makes connected notification"
       (let [{:keys [method]} (sut/build-notification :connected)]
-        (should= :notifications/connected method)))
+        (should= "notifications/connected" method)))
 
     (it "makes disconnected notification"
       (let [{:keys [method]} (sut/build-notification :disconnected)]
-        (should= :notifications/disconnected method)))
+        (should= "notifications/disconnected" method)))
 
     (it "makes restarted notification"
       (let [{:keys [method]} (sut/build-notification :restarted)]
-        (should= :notifications/restarted method)))
+        (should= "notifications/restarted" method)))
     )
 
   (context "build-request"

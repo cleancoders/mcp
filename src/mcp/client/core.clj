@@ -3,7 +3,7 @@
             [mcp.core :as core]))
 
 (defn ->notifications-method [method]
-  (keyword "notifications" (name method)))
+  (str "notifications/" (name method)))
 
 (defn build-notification [method]
   (-> {:method (->notifications-method method)}
