@@ -9,6 +9,12 @@
 (declare handler)
 (declare spec)
 
+(def files
+  {"/foo/bar.clj" {:content       (.getBytes "baz")
+                   :mime-type     "text/html"
+                   :name          "bar.clj"
+                   :last-modified (str (time/now))}})
+
 (describe "resources"
 
   (with-stubs)
@@ -29,11 +35,7 @@
     (with handler (sut/->list-handler [{:kind :file :path "/foo/bar.clj"}]))
 
     (it "returns resources"
-      (with-redefs [fs/->file (partial fs/->mem-file
-                                       {"/foo/bar.clj" {:content       (.getBytes "baz")
-                                                        :mime-type     "text/html"
-                                                        :name          "bar.clj"
-                                                        :last-modified (str (time/now))}})]
+      (with-redefs [fs/->file (partial fs/->mem-file files)]
         (let [req  {:jsonrpc "2.0"
                     :id      1
                     :method  "resources/list"}
@@ -62,11 +64,7 @@
         (should= "file:///foo/baz.clj" (:uri (:data error)))))
 
     (it "returns resource when found"
-      (with-redefs [fs/->file (partial fs/->mem-file
-                                       {"/foo/bar.clj" {:content       (.getBytes "baz")
-                                                        :mime-type     "text/html"
-                                                        :name          "bar.clj"
-                                                        :last-modified (str (time/now))}})]
+      (with-redefs [fs/->file (partial fs/->mem-file files)]
         (let [req  {:jsonrpc "2.0"
                     :id      1
                     :method  "resources/read"
