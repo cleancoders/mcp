@@ -28,7 +28,7 @@
 
     (with handler (sut/->list-handler [{:kind :file :path "/foo/bar.clj"}]))
 
-    (it "returns resource when found"
+    (it "returns resources"
       (with-redefs [fs/->file (partial fs/->mem-file
                                        {"/foo/bar.clj" {:content       (.getBytes "baz")
                                                         :mime-type     "text/html"
