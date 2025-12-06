@@ -24,6 +24,27 @@
           resp   (server/handle server (server-helper/->req {:method "resources/list" :id 2}))]
       (server-helper/should-respond-unknown-method resp "Method 'resources/list' is not supported" 2)))
 
+  (context "->list-handler"
+
+    (with handler (sut/->list-handler [{:kind :file :path "/foo/bar.clj"}]))
+
+    (it "returns resource when found"
+      (with-redefs [fs/->file (partial fs/->mem-file
+                                       {"/foo/bar.clj" {:content       (.getBytes "baz")
+                                                        :mime-type     "text/html"
+                                                        :name          "bar.clj"
+                                                        :last-modified (str (time/now))}})]
+        (let [req  {:jsonrpc "2.0"
+                    :id      1
+                    :method  "resources/list"}
+              resp (@handler req)
+              resource (-> resp :result :resources first)]
+          (should= "2.0" (:jsonrpc resp))
+          (should= 1 (:id resp))
+          (should= "file:///foo/bar.clj" (:uri resource))
+          (should= "bar.clj" (:name resource))
+          (should= "text/html" (:mimeType resource))))))
+
   (context "->read-handler"
 
     (with handler (sut/->read-handler [{:kind :file :path "/foo/bar.clj"}]))

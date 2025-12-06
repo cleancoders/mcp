@@ -10,7 +10,7 @@
                  (let [f (fs/->file path)]
                    (conj coll
                          {:uri      (format "file://%s" path)
-                          :name     (name f)
+                          :name     (.name f)
                           :mimeType (fs/mime-type f)})))
                [] resources)]
     (fn [req]
