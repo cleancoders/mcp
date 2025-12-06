@@ -17,6 +17,6 @@
         writer (io/writer (process/stdin server-proc))
         reader (io/reader (process/stdout server-proc))
         impl (stdio/->IOTransport reader writer)]
-    (ccc/->inspect (stdio/request-initialize! impl client))
-    (ccc/->inspect (stdio/notify-initialized! impl))
-    (ccc/->inspect (stdio/request! impl (core/build-request 2 "tools/list")))))
+    (ccc/->inspect (core/request-initialize! impl client))
+    (ccc/->inspect (core/notify-initialized! impl))
+    (ccc/->inspect (core/request! impl (core/build-request 2 "tools/list")))))

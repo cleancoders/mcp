@@ -7,6 +7,7 @@
            }
  :aliases {
            :serve {:main-opts ["-m" "mcp.server"]}
+           :client {:main-opts ["-m" "mcp.client"]}
            :test  {:extra-deps  {
                                  speclj/speclj {:mvn/version "3.10.0"}
                                  }
