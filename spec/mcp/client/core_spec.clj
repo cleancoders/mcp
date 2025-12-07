@@ -6,6 +6,8 @@
 
 (declare client-info)
 (declare client)
+(declare request)
+(declare response)
 
 (deftype MockTransport [sent-atom read-atom]
   sut/Transport
@@ -105,16 +107,20 @@
     (with transport mock-transport)
 
     (context "raw-request!"
+
+      (with request (sut/->initialize-request @client))
+      (with response {:jsonrpc "2.0" :id 1})
+
+      (before (set-read! (utilc/->json @response)))
+
       (it "sends jrpc-payload through transport"
-        (let [req (utilc/->json (sut/->initialize-request @client))]
-          (sut/raw-request! @transport req)
-          (should= [req] (get-sent))))
+        (let [json-req (utilc/->json @request)]
+          (sut/raw-request! @transport json-req)
+          (should= [json-req] (get-sent))))
 
       (it "returns read data"
-        (let [req (utilc/->json (sut/->initialize-request @client))
-              resp (utilc/->json {:jsonrpc "2.0" :id 1})]
-          (set-read! resp)
-          (should= resp (sut/raw-request! @transport req))))
+        (let [req (utilc/->json @request)]
+          (should= (utilc/->json @response) (sut/raw-request! @transport req))))
       )
 
     (context "request!"
