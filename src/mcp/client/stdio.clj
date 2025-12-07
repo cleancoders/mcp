@@ -1,9 +1,9 @@
 (ns mcp.client.stdio
-  (:import [java.io Reader Writer]
-           (mcp.client.core Transport)))
+  (:require [mcp.client.core :as core])
+  (:import [java.io Reader Writer]))
 
 (deftype IOTransport [^Reader reader ^Writer writer]
-  Transport
+  core/Transport
   (send! [_ jrpc-payload]
     (.write writer ^String jrpc-payload)
     (.newLine writer)
