@@ -1,12 +1,39 @@
 (ns mcp.client.core-spec
-  (:require [mcp.client.core :as sut]
+  (:require [c3kit.apron.utilc :as utilc]
+            [mcp.client.core :as sut]
             [mcp.core :as core]
             [speclj.core :refer :all]))
 
 (declare client-info)
 (declare client)
 
+(deftype MockTransport [sent-atom read-atom]
+  sut/Transport
+  (send! [_ jrpc-payload]
+    (swap! sent-atom conj jrpc-payload))
+  (read! [_]
+    @read-atom))
+
+(declare transport)
+(def sent-atom (atom []))
+(def read-atom (atom nil))
+
+(defn- reset-transport! []
+  (reset! sent-atom [])
+  (reset! read-atom nil))
+
+(def mock-transport (->MockTransport sent-atom read-atom))
+(defn- get-sent [] @sent-atom)
+(defn- set-read! [content] (reset! read-atom content))
+
 (describe "Client"
+
+  (with client-info {:name    "ExampleClient"
+                     :title   "Example Client Display Name"
+                     :version "1.0.0"})
+
+  (with client (sut/->client @client-info))
+
   (context "build-notification"
     (it "has jsonrpc version on it"
       (should= "2.0" (:jsonrpc (sut/build-notification :initialized)))) 
@@ -46,12 +73,6 @@
       (should= {:test 12} (:params (sut/build-request 2 :test :test 12))))
     )
 
-  (with client-info {:name    "ExampleClient"
-                     :title   "Example Client Display Name"
-                     :version "1.0.0"})
-
-  (with client (sut/->client @client-info))
-
   (context "->client"
     (it "has protocolVersion"
       (should= core/protocol-version (:protocolVersion (sut/->client @client-info))))
@@ -77,4 +98,60 @@
   (it "initialized-notification"
     (should= (sut/build-notification "initialized")
              sut/initialized-notification))
+
+  (context "transport-dependent fns"
+    (before (reset-transport!))
+
+    (with transport mock-transport)
+
+    (context "raw-request!"
+      (it "sends jrpc-payload through transport"
+        (let [req (utilc/->json (sut/->initialize-request @client))]
+          (sut/raw-request! @transport req)
+          (should= [req] (get-sent))))
+
+      (it "returns read data"
+        (let [req (utilc/->json (sut/->initialize-request @client))
+              resp (utilc/->json {:jsonrpc "2.0" :id 1})]
+          (set-read! resp)
+          (should= resp (sut/raw-request! @transport req))))
+      )
+
+    (context "request!"
+      (it "sends rpc-payload through transport"
+        (let [req (sut/->initialize-request @client)
+              resp (utilc/->json {:jsonrpc "2.0" :id 1})]
+          (set-read! resp)
+          (sut/request! @transport req)
+          (should= [(utilc/->json req)] (get-sent))))
+
+      (it "returns read data as edn"
+        (let [req (sut/->initialize-request @client)
+              resp {:jsonrpc "2.0" :id 1}]
+          (set-read! (utilc/->json resp))
+          (should= resp (sut/request! @transport req))))
+
+      (it "throws if read data is not json"
+        (let [req (sut/->initialize-request @client)]
+          (set-read! "invalid json")
+          (should-throw (sut/request! @transport req))))
+      )
+
+    (it "request-initialize!"
+      (let [resp {:jsonrpc "2.0" :id 1}]
+        (set-read! (utilc/->json resp))
+        (should= resp (sut/request-initialize! @transport @client))
+        (should= [(utilc/->json (sut/->initialize-request @client))] (get-sent))))
+
+    (context "notify-initialized!"
+      (it "sends init notification through transport"
+        (sut/notify-initialized! @transport)
+        (should= [(utilc/->json sut/initialized-notification)] (get-sent)))
+
+      (it "doesn't expect response"
+        (should-be-nil (sut/notify-initialized! @transport)))
+      )
+
+    )
+
   )

@@ -48,4 +48,5 @@
   (request! transport (->initialize-request client)))
 
 (defn notify-initialized! [transport]
-  (send! transport (utilc/->json initialized-notification)))
+  (send! transport (utilc/->json initialized-notification))
+  nil)
