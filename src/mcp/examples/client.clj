@@ -1,4 +1,4 @@
-(ns mcp.client
+(ns mcp.examples.client
   (:require [c3kit.apron.corec :as ccc]
             [clojure.java.io :as io]
             [clojure.java.process :as process]
@@ -17,6 +17,5 @@
         writer (io/writer (process/stdin server-proc))
         reader (io/reader (process/stdout server-proc))
         impl (stdio/->IOTransport reader writer)]
-    (ccc/->inspect (core/request-initialize! impl client))
-    (ccc/->inspect (core/notify-initialized! impl))
-    (ccc/->inspect (core/request! impl (core/build-request 2 "tools/list")))))
+    (ccc/->inspect @(core/initialize! impl client))
+    (ccc/->inspect @(core/request! impl (core/build-request 2 "tools/list")))))
