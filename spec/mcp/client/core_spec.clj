@@ -9,6 +9,9 @@
 (declare request)
 (declare response)
 
+(defn- initial-request [client]
+  (sut/build-request 1 "initialize" client))
+
 (deftype MockTransport [sent-atom read-atom]
   sut/Transport
   (send! [_ jrpc-payload]
@@ -30,6 +33,13 @@
 (def mock-transport (->MockTransport sent-atom read-atom))
 (defn- get-sent [] @sent-atom)
 (defn- set-read! [responses] (reset! read-atom responses))
+
+(declare config)
+
+(def current-id (atom 0))
+(defn- next-id! []
+  (swap! current-id inc))
+(defn- reset-id! [] (reset! current-id 0))
 
 (describe "Client"
   (with-stubs)
@@ -96,21 +106,25 @@
         (should= other-client-info (:clientInfo (sut/->client other-client-info)))))
     )
 
-  (it "->initialize-request"
-    (should= (sut/build-request 1 "initialize" @client)
-             (sut/->initialize-request @client)))
-
   (it "initialized-notification"
     (should= (sut/build-notification "initialized")
              sut/initialized-notification))
 
-  (context "transport-dependent fns"
-    (before (reset-transport!))
+  (context "config-dependent fns"
+    (before (reset-transport!)
+            (reset-id!))
 
     (with transport mock-transport)
+    (with config {:client @client
+                  :transport @transport
+                  :next-id-fn next-id!})
 
     (with response (utilc/->json {:jsonrpc "2.0" :id 1}))
-    (with request (utilc/->json (sut/->initialize-request @client)))
+    (with request (utilc/->json (sut/->initialize-request @config)))
+
+    (it "->initialize-request"
+      (should= (sut/build-request 1 "initialize" @client)
+               (sut/->initialize-request @config)))
 
     (context "raw-request!"
 
@@ -128,7 +142,7 @@
       (it "ensures returned response is correct id"
         (let [resp-1 @response
               resp-2 (utilc/->json {:jsonrpc "2.0" :id 2})
-              req-1 (utilc/->json (sut/->initialize-request @client))
+              req-1 (utilc/->json (sut/->initialize-request @config))
               d1 (sut/raw-request! @transport req-1)
               req-2 (utilc/->json (sut/build-request 2 "tools/list"))
               d2 (sut/raw-request! @transport req-2)]
@@ -153,7 +167,7 @@
       (it "ensures returned response is correct id"
         (let [resp-1 @response
               resp-2 (utilc/->json {:jsonrpc "2.0" :id 2})
-              req-1 (sut/->initialize-request @client)
+              req-1 (sut/->initialize-request @config)
               d1 (sut/request! @transport req-1)
               req-2 (sut/build-request 2 "tools/list")
               d2 (sut/request! @transport req-2)]
@@ -164,13 +178,14 @@
 
     (context "request-initialize!"
       (it "sends initialization request"
-        (sut/request-initialize! @transport @client)
-        (should= [(utilc/->json (sut/->initialize-request @client))] (get-sent)))
+        (sut/request-initialize! @config)
+        (should= [(utilc/->json (initial-request @client))] (get-sent)))
 
       (it "returns response"
         (set-read! [@response])
         (should= (utilc/<-json-kw @response)
-                 @(sut/request-initialize! @transport @client))))
+                 @(sut/request-initialize! @config)))
+      )
 
     (context "notify-initialized!"
       (it "sends init notification through transport"
@@ -183,15 +198,16 @@
 
     (context "initialize!"
       (it "sends initialization request and notification"
-        (sut/initialize! @transport @client)
-        (should= [(utilc/->json (sut/->initialize-request @client))
+        (sut/initialize! @config)
+        (should= [(utilc/->json (initial-request @client))
                   (utilc/->json sut/initialized-notification)]
                  (get-sent)))
 
       (it "returns response from initialization request"
         (set-read! [@response])
         (should= (utilc/<-json-kw @response)
-                 @(sut/initialize! @transport @client))))
+                 @(sut/initialize! @config)))
+      )
 
     )
 

@@ -25,9 +25,6 @@
                   :elicitation {}}
    :clientInfo client-info})
 
-(defn ->initialize-request [client]
-  (build-request 1 "initialize" client))
-
 (def initialized-notification (build-notification "initialized"))
 
 (defprotocol Transport
@@ -66,14 +63,17 @@
   (send! transport (utilc/->json rpc-payload))
   (delay (utilc/<-json-kw (fetch-response! transport responses-atom (:id rpc-payload)))))
 
-(defn request-initialize! [transport client]
-  (request! transport (->initialize-request client)))
+(defn ->initialize-request [{:keys [next-id-fn client] :as _config}]
+  (build-request (next-id-fn) "initialize" client))
+
+(defn request-initialize! [{:keys [transport] :as config}]
+  (request! transport (->initialize-request config)))
 
 (defn notify-initialized! [transport]
   (send! transport (utilc/->json initialized-notification))
   nil)
 
-(defn initialize! [transport client]
-  (let [init-resp (request-initialize! transport client)]
+(defn initialize! [{:keys [transport] :as config}]
+  (let [init-resp (request-initialize! config)]
     (notify-initialized! transport)
     init-resp))
