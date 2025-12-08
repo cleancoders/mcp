@@ -66,6 +66,9 @@
   (send! transport (utilc/->json edn-rpc-payload))
   (delay (utilc/<-json-kw (fetch-response! transport responses-atom (:id edn-rpc-payload)))))
 
+(defn request-initialize! [transport client]
+  (request! transport (->initialize-request client)))
+
 (defn notify-initialized! [transport]
   (send! transport (utilc/->json initialized-notification))
   nil)
