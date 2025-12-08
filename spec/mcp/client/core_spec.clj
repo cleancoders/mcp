@@ -137,49 +137,6 @@
           (should= resp-2 @d2)))
       )
 
-    (context "raw-request!"
-
-      (with request (sut/->initialize-request @client))
-      (with response {:jsonrpc "2.0" :id 1})
-
-      (before (set-read! [(utilc/->json @response)]))
-
-      (it "sends jrpc-payload through transport"
-        (let [json-req (utilc/->json @request)]
-          (sut/raw-request! @transport json-req)
-          (should= [json-req] (get-sent))))
-
-      (it "returns read data"
-        (let [req (utilc/->json @request)]
-          (should= (utilc/->json @response) (sut/raw-request! @transport req))))
-      )
-
-    (context "request!"
-      (it "sends rpc-payload through transport"
-        (let [req (sut/->initialize-request @client)
-              resp (utilc/->json {:jsonrpc "2.0" :id 1})]
-          (set-read! [resp])
-          (sut/request! @transport req)
-          (should= [(utilc/->json req)] (get-sent))))
-
-      (it "returns read data as edn"
-        (let [req (sut/->initialize-request @client)
-              resp {:jsonrpc "2.0" :id 1}]
-          (set-read! [(utilc/->json resp)])
-          (should= resp (sut/request! @transport req))))
-
-      (it "throws if read data is not json"
-        (let [req (sut/->initialize-request @client)]
-          (set-read! ["invalid json"])
-          (should-throw (sut/request! @transport req))))
-      )
-
-    (it "request-initialize!"
-      (let [resp {:jsonrpc "2.0" :id 1}]
-        (set-read! [(utilc/->json resp)])
-        (should= resp (sut/request-initialize! @transport @client))
-        (should= [(utilc/->json (sut/->initialize-request @client))] (get-sent))))
-
     (context "notify-initialized!"
       (it "sends init notification through transport"
         (sut/notify-initialized! @transport)

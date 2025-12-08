@@ -34,19 +34,6 @@
   (send! [this jrpc-payload])
   (read! [this]))
 
-(defn raw-request! [transport jrpc-payload]
-  (send! transport jrpc-payload)
-  (read! transport))
-
-(defn request! [transport edn-rpc-payload]
-  (->> edn-rpc-payload
-       utilc/->json
-       (raw-request! transport)
-       utilc/<-json-kw))
-
-(defn request-initialize! [transport client]
-  (request! transport (->initialize-request client)))
-
 (defn- maybe-save-response! [responses-atom resp id]
   (let [resp-id (:id (utilc/<-json-kw resp))]
     (if-not (= resp-id id)

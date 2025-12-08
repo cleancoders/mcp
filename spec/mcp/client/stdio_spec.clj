@@ -37,7 +37,7 @@
           impl (sut/->IOTransport reader nil)]
       (should= "hello" (core/read! impl))))
 
-  (context "raw-request!"
+  #_(context "raw-request!"
 
     (with json-req (utilc/->json (core/build-request 2 "tools/list")))
     (with json-resp (utilc/->json (server/handle server (utilc/<-json-kw @json-req))))
