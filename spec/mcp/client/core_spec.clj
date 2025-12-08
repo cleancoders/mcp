@@ -1,5 +1,6 @@
 (ns mcp.client.core-spec
-  (:require [c3kit.apron.utilc :as utilc]
+  (:require [c3kit.apron.corec :as ccc]
+            [c3kit.apron.utilc :as utilc]
             [mcp.client.core :as sut]
             [mcp.core :as core]
             [speclj.core :refer :all]))
@@ -209,6 +210,30 @@
                  @(sut/initialize! @config)))
       )
 
+    (context "request!"
+      (it "sends method request"
+        (sut/request! @config "tools/list")
+        (should= [(utilc/->json (sut/build-request 1 "tools/list"))]
+                 (get-sent)))
+
+      (it "keeps track of the request id"
+        (sut/initialize! @config)
+        (sut/request! @config "tools/list")
+        (should= [(utilc/->json (initial-request @client))
+                  (utilc/->json sut/initialized-notification)
+                  (utilc/->json (sut/build-request 2 "tools/list"))]
+                 (get-sent)))
+
+      (it "optionally accepts parameters"
+        (sut/request! @config "tools/call" {:name "get_weather"})
+        (should= [(utilc/->json (sut/build-request 1 "tools/call" {:name "get_weather"}))]
+                 (get-sent)))
+
+      (it "returns response from initialization request"
+        (set-read! [@response])
+        (should= (utilc/<-json-kw @response)
+                 @(sut/request! @config "tools/list")))
+      )
     )
 
   )

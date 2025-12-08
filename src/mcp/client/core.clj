@@ -77,3 +77,9 @@
   (let [init-resp (request-initialize! config)]
     (notify-initialized! transport)
     init-resp))
+
+(defn request!
+  ([config method]
+   (request! config method {}))
+  ([{:keys [transport next-id-fn] :as _config} method params]
+   (raw-request! transport (build-request (next-id-fn) method params))))
