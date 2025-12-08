@@ -72,3 +72,8 @@
 (defn notify-initialized! [transport]
   (send! transport (utilc/->json initialized-notification))
   nil)
+
+(defn initialize! [transport client]
+  (let [init-resp (request-initialize! transport client)]
+    (notify-initialized! transport)
+    init-resp))

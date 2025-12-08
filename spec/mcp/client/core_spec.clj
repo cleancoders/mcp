@@ -181,6 +181,18 @@
         (should-be-nil (sut/notify-initialized! @transport)))
       )
 
+    (context "initialize!"
+      (it "sends initialization request and notification"
+        (sut/initialize! @transport @client)
+        (should= [(utilc/->json (sut/->initialize-request @client))
+                  (utilc/->json sut/initialized-notification)]
+                 (get-sent)))
+
+      (it "returns response from initialization request"
+        (set-read! [@response])
+        (should= (utilc/<-json-kw @response)
+                 @(sut/initialize! @transport @client))))
+
     )
 
   )
