@@ -109,7 +109,7 @@
 
     (with transport mock-transport)
 
-    (context "smart-request!"
+    (context "raw-request!"
 
       (with response (utilc/->json {:jsonrpc "2.0" :id 1}))
       (with request (utilc/->json (sut/->initialize-request @client)))
@@ -117,11 +117,11 @@
       (before (set-read! [@response]))
 
       (it "sends rpc-payload through transport"
-        (sut/smart-request! @transport @request)
+        (sut/raw-request! @transport @request)
         (should= [@request] (get-sent)))
 
       (it "returns delayed response"
-        (let [delay (sut/smart-request! @transport @request)]
+        (let [delay (sut/raw-request! @transport @request)]
           (should-not-have-invoked :read!)
           (should= @response @delay)))
 
@@ -129,9 +129,9 @@
         (let [resp-1 @response
               resp-2 (utilc/->json {:jsonrpc "2.0" :id 2})
               req-1 (utilc/->json (sut/->initialize-request @client))
-              d1 (sut/smart-request! @transport req-1)
+              d1 (sut/raw-request! @transport req-1)
               req-2 (utilc/->json (sut/build-request 2 "tools/list"))
-              d2 (sut/smart-request! @transport req-2)]
+              d2 (sut/raw-request! @transport req-2)]
           (set-read! [resp-2 resp-1])
           (should= resp-1 @d1)
           (should= resp-2 @d2)))

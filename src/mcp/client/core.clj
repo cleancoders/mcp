@@ -57,7 +57,7 @@
 
 (def responses-atom (atom {}))
 
-(defn smart-request! [transport jrpc-payload]
+(defn raw-request! [transport jrpc-payload]
   (let [req-id (:id (utilc/<-json-kw jrpc-payload))]
     (send! transport jrpc-payload)
     (delay (fetch-response! transport responses-atom req-id))))
