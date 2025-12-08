@@ -1,4 +1,4 @@
-(ns mcp.examples.client
+(ns mcp.client.example
   (:require [c3kit.apron.corec :as ccc]
             [clojure.java.io :as io]
             [clojure.java.process :as process]
@@ -16,6 +16,10 @@
                       "clojure" "-Mserve")
         writer (io/writer (process/stdin server-proc))
         reader (io/reader (process/stdout server-proc))
-        impl (stdio/->IOTransport reader writer)]
-    (ccc/->inspect @(core/initialize! impl client))
-    (ccc/->inspect @(core/request! impl (core/build-request 2 "tools/list")))))
+        transport (stdio/->IOTransport reader writer)
+        current-id (atom 0)
+        config {:transport transport
+                :client client
+                :next-id-fn #(swap! current-id inc)}]
+    (ccc/->inspect @(core/initialize! config))
+    (ccc/->inspect @(core/request! transport (core/build-request 2 "tools/list")))))

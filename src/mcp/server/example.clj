@@ -1,4 +1,4 @@
-(ns mcp.examples.server
+(ns mcp.server.example
   (:require [mcp.server.core :as server]
             [mcp.server.resource :as resource]
             [mcp.server.stdio :as stdio]
