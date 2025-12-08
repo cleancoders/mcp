@@ -17,9 +17,8 @@
         writer (io/writer (process/stdin server-proc))
         reader (io/reader (process/stdout server-proc))
         transport (stdio/->IOTransport reader writer)
-        current-id (atom 0)
         config {:transport transport
                 :client client
-                :next-id-fn #(swap! current-id inc)}]
+                :next-id-fn (let [current-id (atom 0)] #(swap! current-id inc))}]
     (ccc/->inspect @(core/initialize! config))
     (ccc/->inspect @(core/request! config "tools/list"))))
