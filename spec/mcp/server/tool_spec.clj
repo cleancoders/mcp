@@ -81,8 +81,8 @@
                           :method  "tools/call"
                           :params  {:name "foo"}}
             resp         (-> (handler req) :result :content first)]
-        (should= "text" (:type resp))
-        (should= "handled 1" (:text resp))))
+        (should= "tool_use" (:type resp))
+        (should= "\"handled 1\"" (:text resp))))
 
     ; todo - enforce tool's given schema on params
     )

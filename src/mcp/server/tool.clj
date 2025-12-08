@@ -1,6 +1,7 @@
 (ns mcp.server.tool
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.apron.doc :as doc]
+            [c3kit.apron.utilc :as utilc]
             [mcp.core :as core]))
 
 (def default-schema
@@ -32,7 +33,7 @@
       (if tool
         (core/with-version
           {:id (:id req)
-           :result {:content [{:type "text" :text (handler req)}]}})
+           :result {:content [{:type "tool_use" :text (utilc/->json (handler req))}]}})
         (core/with-version
           {:id (:id req)
            :error
