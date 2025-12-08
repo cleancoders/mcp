@@ -62,9 +62,9 @@
     (send! transport jrpc-payload)
     (delay (fetch-response! transport responses-atom req-id))))
 
-(defn request! [transport edn-rpc-payload]
-  (send! transport (utilc/->json edn-rpc-payload))
-  (delay (utilc/<-json-kw (fetch-response! transport responses-atom (:id edn-rpc-payload)))))
+(defn request! [transport rpc-payload]
+  (send! transport (utilc/->json rpc-payload))
+  (delay (utilc/<-json-kw (fetch-response! transport responses-atom (:id rpc-payload)))))
 
 (defn request-initialize! [transport client]
   (request! transport (->initialize-request client)))
