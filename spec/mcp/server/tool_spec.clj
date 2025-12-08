@@ -73,6 +73,7 @@
             resp (with-out-str (@handler req))]
         (should-contain "handled!" resp)))
 
+    ; Need to dispatch based on output type. For now: "text"
     (it "returns output of tool"
       (let [tool-handler (fn [req] (str "handled " (:id req)))
             handler      (sut/->call-handler [(assoc tool-1 :handler tool-handler)])
@@ -81,7 +82,7 @@
                           :method  "tools/call"
                           :params  {:name "foo"}}
             resp         (-> (handler req) :result :content first)]
-        (should= "tool_use" (:type resp))
+        (should= "text" (:type resp))
         (should= "\"handled 1\"" (:text resp))))
 
     ; todo - enforce tool's given schema on params

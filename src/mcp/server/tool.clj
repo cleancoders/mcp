@@ -33,7 +33,7 @@
       (if tool
         (core/with-version
           {:id (:id req)
-           :result {:content [{:type "tool_use" :text (utilc/->json (handler req))}]}})
+           :result {:content [{:type "text" :text (utilc/->json (handler req))}]}})
         (core/with-version
           {:id (:id req)
            :error
