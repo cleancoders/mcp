@@ -14,22 +14,25 @@
   (send! [_ jrpc-payload]
     (swap! sent-atom conj jrpc-payload))
   (read! [_]
-    @read-atom))
+    ((stub :read!))
+    (let [[first & rest] @read-atom]
+      (reset! read-atom rest)
+      first)))
 
 (declare transport)
 (def sent-atom (atom []))
-(def read-atom (atom nil))
+(def read-atom (atom []))
 
 (defn- reset-transport! []
   (reset! sent-atom [])
-  (reset! read-atom nil))
+  (reset! read-atom []))
 
 (def mock-transport (->MockTransport sent-atom read-atom))
 (defn- get-sent [] @sent-atom)
-(defn- set-read! [content] (reset! read-atom content))
+(defn- set-read! [responses] (reset! read-atom responses))
 
 (describe "Client"
-
+  (with-stubs)
   (with client-info {:name    "ExampleClient"
                      :title   "Example Client Display Name"
                      :version "1.0.0"})
@@ -106,12 +109,40 @@
 
     (with transport mock-transport)
 
+    (context "smart-request!"
+
+      (with response (utilc/->json {:jsonrpc "2.0" :id 1}))
+      (with request (utilc/->json (sut/->initialize-request @client)))
+
+      (before (set-read! [@response]))
+
+      (it "sends rpc-payload through transport"
+        (sut/smart-request! @transport @request)
+        (should= [@request] (get-sent)))
+
+      (it "returns delayed response"
+        (let [delay (sut/smart-request! @transport @request)]
+          (should-not-have-invoked :read!)
+          (should= @response @delay)))
+
+      (it "ensures returned response is correct id"
+        (let [resp-1 @response
+              resp-2 (utilc/->json {:jsonrpc "2.0" :id 2})
+              req-1 (utilc/->json (sut/->initialize-request @client))
+              d1 (sut/smart-request! @transport req-1)
+              req-2 (utilc/->json (sut/build-request 2 "tools/list"))
+              d2 (sut/smart-request! @transport req-2)]
+          (set-read! [resp-2 resp-1])
+          (should= resp-1 @d1)
+          (should= resp-2 @d2)))
+      )
+
     (context "raw-request!"
 
       (with request (sut/->initialize-request @client))
       (with response {:jsonrpc "2.0" :id 1})
 
-      (before (set-read! (utilc/->json @response)))
+      (before (set-read! [(utilc/->json @response)]))
 
       (it "sends jrpc-payload through transport"
         (let [json-req (utilc/->json @request)]
@@ -127,25 +158,25 @@
       (it "sends rpc-payload through transport"
         (let [req (sut/->initialize-request @client)
               resp (utilc/->json {:jsonrpc "2.0" :id 1})]
-          (set-read! resp)
+          (set-read! [resp])
           (sut/request! @transport req)
           (should= [(utilc/->json req)] (get-sent))))
 
       (it "returns read data as edn"
         (let [req (sut/->initialize-request @client)
               resp {:jsonrpc "2.0" :id 1}]
-          (set-read! (utilc/->json resp))
+          (set-read! [(utilc/->json resp)])
           (should= resp (sut/request! @transport req))))
 
       (it "throws if read data is not json"
         (let [req (sut/->initialize-request @client)]
-          (set-read! "invalid json")
+          (set-read! ["invalid json"])
           (should-throw (sut/request! @transport req))))
       )
 
     (it "request-initialize!"
       (let [resp {:jsonrpc "2.0" :id 1}]
-        (set-read! (utilc/->json resp))
+        (set-read! [(utilc/->json resp)])
         (should= resp (sut/request-initialize! @transport @client))
         (should= [(utilc/->json (sut/->initialize-request @client))] (get-sent))))
 

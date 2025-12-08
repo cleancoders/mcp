@@ -47,6 +47,34 @@
 (defn request-initialize! [transport client]
   (request! transport (->initialize-request client)))
 
+(defn- maybe-save-response! [responses-atom resp id]
+  (let [resp-id (:id (utilc/<-json-kw resp))]
+    (if-not (= resp-id id)
+      (do (swap! responses-atom assoc resp-id resp)
+          nil)
+      resp)))
+
+(defn- read-until-id! [transport responses-atom id]
+  (loop [resp (read! transport)]
+    (or (maybe-save-response! responses-atom resp id)
+        (recur (read! transport)))))
+
+(defn- pluck-response! [responses-atom id]
+  (when-let [saved-response (get @responses-atom id)]
+    (swap! responses-atom dissoc id)
+    saved-response))
+
+(defn- fetch-response! [transport responses-atom id]
+  (or (pluck-response! responses-atom id)
+      (read-until-id! transport responses-atom id)))
+
+(def responses-atom (atom {}))
+
+(defn smart-request! [transport jrpc-payload]
+  (let [req-id (:id (utilc/<-json-kw jrpc-payload))]
+    (send! transport jrpc-payload)
+    (delay (fetch-response! transport responses-atom req-id))))
+
 (defn notify-initialized! [transport]
   (send! transport (utilc/->json initialized-notification))
   nil)
