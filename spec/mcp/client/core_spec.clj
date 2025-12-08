@@ -126,16 +126,16 @@
       (should= (sut/build-request 1 "initialize" @client)
                (sut/->initialize-request @config)))
 
-    (context "raw-request!"
+    (context "raw-json-request!"
 
       (before (set-read! [@response]))
 
       (it "sends jrpc-payload through transport"
-        (sut/raw-request! @transport @request)
+        (sut/raw-json-request! @transport @request)
         (should= [@request] (get-sent)))
 
       (it "returns delayed response"
-        (let [delay (sut/raw-request! @transport @request)]
+        (let [delay (sut/raw-json-request! @transport @request)]
           (should-not-have-invoked :read!)
           (should= @response @delay)))
 
@@ -143,24 +143,24 @@
         (let [resp-1 @response
               resp-2 (utilc/->json {:jsonrpc "2.0" :id 2})
               req-1 (utilc/->json (sut/->initialize-request @config))
-              d1 (sut/raw-request! @transport req-1)
+              d1 (sut/raw-json-request! @transport req-1)
               req-2 (utilc/->json (sut/build-request 2 "tools/list"))
-              d2 (sut/raw-request! @transport req-2)]
+              d2 (sut/raw-json-request! @transport req-2)]
           (set-read! [resp-2 resp-1])
           (should= resp-1 @d1)
           (should= resp-2 @d2)))
       )
 
-    (context "request!"
+    (context "raw-request!"
 
       (before (set-read! [@response]))
 
       (it "sends jrpc-payload through transport"
-        (sut/request! @transport (utilc/<-json-kw @request))
+        (sut/raw-request! @transport (utilc/<-json-kw @request))
         (should= [@request] (get-sent)))
 
       (it "returns delayed response"
-        (let [delay (sut/request! @transport (utilc/<-json-kw @request))]
+        (let [delay (sut/raw-request! @transport (utilc/<-json-kw @request))]
           (should-not-have-invoked :read!)
           (should= (utilc/<-json-kw @response) @delay)))
 
@@ -168,9 +168,9 @@
         (let [resp-1 @response
               resp-2 (utilc/->json {:jsonrpc "2.0" :id 2})
               req-1 (sut/->initialize-request @config)
-              d1 (sut/request! @transport req-1)
+              d1 (sut/raw-request! @transport req-1)
               req-2 (sut/build-request 2 "tools/list")
-              d2 (sut/request! @transport req-2)]
+              d2 (sut/raw-request! @transport req-2)]
           (set-read! [resp-2 resp-1])
           (should= (utilc/<-json-kw resp-1) @d1)
           (should= (utilc/<-json-kw resp-2) @d2)))

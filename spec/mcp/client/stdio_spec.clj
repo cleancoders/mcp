@@ -47,8 +47,8 @@
             json-resp-2 (utilc/->json (server/handle server (utilc/<-json-kw json-req-2)))
             input-stream (->input-stream (str @json-resp "\n" json-resp-2 "\n"))
             impl (sut/->IOTransport (io/reader input-stream) (io/writer @output-stream))]
-        (should= @json-resp (core/raw-request! impl @json-req))
-        (should= json-resp-2 (core/raw-request! impl json-req-2))
+        (should= @json-resp (core/raw-json-request! impl @json-req))
+        (should= json-resp-2 (core/raw-json-request! impl json-req-2))
         (with-open [reader (->reader @output-stream)]
           (should= (str @json-req "\n" json-req-2 "\n") (slurp reader)))))
     )

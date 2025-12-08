@@ -54,12 +54,12 @@
 
 (def responses-atom (atom {}))
 
-(defn raw-request! [transport jrpc-payload]
+(defn raw-json-request! [transport jrpc-payload]
   (let [req-id (:id (utilc/<-json-kw jrpc-payload))]
     (send! transport jrpc-payload)
     (delay (fetch-response! transport responses-atom req-id))))
 
-(defn request! [transport rpc-payload]
+(defn raw-request! [transport rpc-payload]
   (send! transport (utilc/->json rpc-payload))
   (delay (utilc/<-json-kw (fetch-response! transport responses-atom (:id rpc-payload)))))
 
@@ -67,7 +67,7 @@
   (build-request (next-id-fn) "initialize" client))
 
 (defn request-initialize! [{:keys [transport] :as config}]
-  (request! transport (->initialize-request config)))
+  (raw-request! transport (->initialize-request config)))
 
 (defn notify-initialized! [transport]
   (send! transport (utilc/->json initialized-notification))

@@ -22,4 +22,4 @@
                 :client client
                 :next-id-fn #(swap! current-id inc)}]
     (ccc/->inspect @(core/initialize! config))
-    (ccc/->inspect @(core/request! transport (core/build-request 2 "tools/list")))))
+    (ccc/->inspect @(core/raw-request! transport (core/build-request 2 "tools/list")))))
