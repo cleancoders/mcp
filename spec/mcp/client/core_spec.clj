@@ -109,14 +109,14 @@
 
     (with transport mock-transport)
 
-    (context "raw-request!"
+    (with response (utilc/->json {:jsonrpc "2.0" :id 1}))
+    (with request (utilc/->json (sut/->initialize-request @client)))
 
-      (with response (utilc/->json {:jsonrpc "2.0" :id 1}))
-      (with request (utilc/->json (sut/->initialize-request @client)))
+    (context "raw-request!"
 
       (before (set-read! [@response]))
 
-      (it "sends rpc-payload through transport"
+      (it "sends jrpc-payload through transport"
         (sut/raw-request! @transport @request)
         (should= [@request] (get-sent)))
 
@@ -135,6 +135,31 @@
           (set-read! [resp-2 resp-1])
           (should= resp-1 @d1)
           (should= resp-2 @d2)))
+      )
+
+    (context "request!"
+
+      (before (set-read! [@response]))
+
+      (it "sends jrpc-payload through transport"
+        (sut/request! @transport (utilc/<-json-kw @request))
+        (should= [@request] (get-sent)))
+
+      (it "returns delayed response"
+        (let [delay (sut/request! @transport (utilc/<-json-kw @request))]
+          (should-not-have-invoked :read!)
+          (should= (utilc/<-json-kw @response) @delay)))
+
+      (it "ensures returned response is correct id"
+        (let [resp-1 @response
+              resp-2 (utilc/->json {:jsonrpc "2.0" :id 2})
+              req-1 (sut/->initialize-request @client)
+              d1 (sut/request! @transport req-1)
+              req-2 (sut/build-request 2 "tools/list")
+              d2 (sut/request! @transport req-2)]
+          (set-read! [resp-2 resp-1])
+          (should= (utilc/<-json-kw resp-1) @d1)
+          (should= (utilc/<-json-kw resp-2) @d2)))
       )
 
     (context "notify-initialized!"
