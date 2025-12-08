@@ -1,6 +1,5 @@
 (ns mcp.client.core-spec
-  (:require [c3kit.apron.corec :as ccc]
-            [c3kit.apron.utilc :as utilc]
+  (:require [c3kit.apron.utilc :as utilc]
             [mcp.client.core :as sut]
             [mcp.core :as core]
             [speclj.core :refer :all]))
