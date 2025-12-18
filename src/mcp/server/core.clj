@@ -11,28 +11,43 @@
   {"initialize"                {:handler (partial init/initialize! spec state)}
    "notifications/initialized" {:handler (partial init/confirm! state)}})
 
-(defn with-resources [capabilities {:keys [resources]}]
-  (if (seq resources)
-    (-> capabilities
-        (assoc "resources/list" {:handler (resource/->list-handler resources)})
-        (assoc "resources/read" {:handler (resource/->read-handler resources)}))
-    capabilities))
+(defn with-resource-handlers [handlers {:keys [resources-by-uri resources-for-list]}]
+  (if (seq resources-by-uri)
+    (-> handlers
+        (assoc "resources/list" {:handler (resource/->list-handler resources-for-list)})
+        (assoc "resources/read" {:handler (resource/->read-handler resources-by-uri)}))
+    handlers))
 
-(defn with-tools [capabilities {:keys [tools]}]
-  (if (seq tools)
-    (-> capabilities
-        (assoc "tools/list" {:handler (tool/->list-handler tools)})
-        (assoc "tools/call" {:handler (tool/->call-handler tools)}))
-    capabilities))
+(defn with-tool-handlers [handlers {:keys [tools-by-name tools-for-list]}]
+  (if (seq tools-by-name)
+    (-> handlers
+        (assoc "tools/list" {:handler (tool/->list-handler tools-for-list)})
+        (assoc "tools/call" {:handler (tool/->call-handler tools-by-name)}))
+    handlers))
+
+(defn- index-tools [spec]
+  (if-let [tools (seq (:tools spec))]
+    (assoc spec
+      :tools-by-name (tool/->tools-by-name tools)
+      :tools-for-list (tool/->tools-for-list tools))
+    spec))
+
+(defn- index-resources [spec]
+  (if-let [resources (seq (:resources spec))]
+    (assoc spec
+      :resources-by-uri (resource/->resources-by-uri resources)
+      :resources-for-list (resource/->resources-for-list resources))
+    spec))
 
 (defn ->server [spec]
-  (let [state (atom {:seen-ids #{}})]
+  (let [state   (atom {:seen-ids #{}})
+        indexed (-> spec index-tools index-resources)]
     (medley/deep-merge
-      spec
-      {:state        state
-       :capabilities (-> (->default-handlers spec state)
-                         (with-resources spec)
-                         (with-tools spec))})))
+      indexed
+      {:state    state
+       :handlers (-> (->default-handlers indexed state)
+                     (with-resource-handlers indexed)
+                     (with-tool-handlers indexed))})))
 
 (defn =to [x] {:validate #(= x %) :message (format "must be equal to %s" x)})
 (defn string-or-long? [x] (or (string? x) (int? x) (char? x)))
@@ -70,7 +85,7 @@
 
 (defn -handle [server req]
   (update-seen-ids! server req)
-  (if-let [handler (-> server :capabilities (get (:method req)) :handler)]
+  (if-let [handler (-> server :handlers (get (:method req)) :handler)]
     (handler req)
     (errors/invalid-method (:id req) (:method req))))
 

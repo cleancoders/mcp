@@ -16,7 +16,7 @@
   (let [spec   {:name             "Clean Code MCP"
                 :server-version   "0.0.1"
                 :protocol-version "2025-06-18"
-                :capabilities     {"experimental/foo" {:handler (fn [_req] "handled")}}}
+                :handlers         {"experimental/foo" {:handler (fn [_req] "handled")}}}
         server (-> spec
                    (resource/with-resource {:kind :file :path "/foo/bar.clj"})
                    (tool/with-tool tool)

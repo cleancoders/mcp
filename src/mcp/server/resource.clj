@@ -4,17 +4,23 @@
 (defn with-resource [server-spec resource-spec]
   (update server-spec :resources conj resource-spec))
 
-(defn ->list-handler [resources]
-  (let [coll (reduce
-               (fn [coll {:keys [path]}]
-                 (let [f (fs/->file path)]
-                   (conj coll
-                         {:uri      (format "file://%s" path)
-                          :name     (.name f)
-                          :mimeType (fs/mime-type f)})))
-               [] resources)]
-    (fn [req]
-      {:jsonrpc "2.0" :id (:id req) :result {:resources coll}})))
+(defn- ->listable-resource [{:keys [path]}]
+  (let [f (fs/->file path)]
+    {:uri      (format "file://%s" path)
+     :name     (fs/name f)
+     :mimeType (fs/mime-type f)}))
+
+(defn ->resources-for-list [resources]
+  (mapv ->listable-resource resources))
+
+(defn ->resources-by-uri [resources]
+  (reduce (fn [m {:keys [path] :as resource}]
+            (assoc m (format "file://%s" path) resource))
+          {} resources))
+
+(defn ->list-handler [resources-for-list]
+  (fn [req]
+    {:jsonrpc "2.0" :id (:id req) :result {:resources resources-for-list}}))
 
 (defn- read-resource [uri]
   (try
@@ -23,17 +29,24 @@
        {:contents [{:uri      uri
                     :mimeType (fs/mime-type f)
                     :text     (fs/content f)}]}})
-    (catch Exception e
+    (catch Exception _
       {:error
        {:code    -32002
         :message "Resource not found"
         :data    {:uri uri}}})))
 
-; needs to support different resource types
-(defn ->read-handler [resources]
+(defn- resource-not-registered [uri]
+  {:error
+   {:code    -32002
+    :message "Resource not registered"
+    :data    {:uri uri}}})
+
+(defn ->read-handler [resources-by-uri]
   (fn [req]
-    (merge
-      {:jsonrpc "2.0"
-       :id      (:id req)}
-      (read-resource (:uri (:params req)))))
-  )
+    (let [uri (:uri (:params req))]
+      (merge
+        {:jsonrpc "2.0"
+         :id      (:id req)}
+        (if (contains? resources-by-uri uri)
+          (read-resource uri)
+          (resource-not-registered uri))))))

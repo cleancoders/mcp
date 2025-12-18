@@ -27,7 +27,7 @@
   (with spec {:name             "Test Server"
               :server-version   "1.0.0"
               :protocol-version "2025-06-18"
-              :capabilities     {"experimental/foo" {:handler (fn [_] :handled)}}})
+              :handlers         {"experimental/foo" {:handler (fn [_] :handled)}}})
   (with server (server/->server @spec))
 
   (redefs-around [server/handle (stub :server/handle {:return mock-response})])

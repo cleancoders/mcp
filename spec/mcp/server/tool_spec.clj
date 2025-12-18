@@ -21,7 +21,7 @@
   (context "->list-handler"
 
     (it "one tool"
-      (let [handler (sut/->list-handler [tool-1])
+      (let [handler (sut/->list-handler (sut/->tools-for-list [tool-1]))
             req     {:jsonrpc "2.0"
                      :id      1
                      :method  "tools/list"
@@ -36,7 +36,7 @@
           (-> resp :result :tools first))))
 
     (it "tools with schemas"
-      (let [handler (sut/->list-handler [tool-1 tool-2])
+      (let [handler (sut/->list-handler (sut/->tools-for-list [tool-1 tool-2]))
             req     {:jsonrpc "2.0"
                      :id      1
                      :method  "tools/list"
@@ -51,7 +51,7 @@
 
   (context "->call-handler"
 
-    (with handler (sut/->call-handler [tool-1]))
+    (with handler (sut/->call-handler (sut/->tools-by-name [tool-1])))
 
     (it "fails when tool not found"
       (let [req {:jsonrpc "2.0"
@@ -73,10 +73,9 @@
             resp (with-out-str (@handler req))]
         (should-contain "handled!" resp)))
 
-    ; Need to dispatch based on output type. For now: "text"
     (it "returns output of tool"
       (let [tool-handler (fn [req] (str "handled " (:id req)))
-            handler      (sut/->call-handler [(assoc tool-1 :handler tool-handler)])
+            handler      (sut/->call-handler (sut/->tools-by-name [(assoc tool-1 :handler tool-handler)]))
             req          {:jsonrpc "2.0"
                           :id      1
                           :method  "tools/call"
@@ -85,6 +84,5 @@
         (should= "text" (:type resp))
         (should= "\"handled 1\"" (:text resp))))
 
-    ; todo - enforce tool's given schema on params
     )
   )

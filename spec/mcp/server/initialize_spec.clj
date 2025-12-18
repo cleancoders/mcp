@@ -16,7 +16,7 @@
   (with spec {:name             "Test Server"
               :server-version   "1.0.0"
               :protocol-version "2025-06-18"
-              :capabilities     {"experimental/foo" {:handler (fn [_req] :handled)}}})
+              :handlers         {"experimental/foo" {:handler (fn [_req] :handled)}}})
   (with server (server/->server @spec))
 
   (context "lifecycle"
