@@ -13,17 +13,22 @@
 (def initialize-params-schema
   {:protocolVersion {:type :string :validations [core/required]}})
 
+(defn- ->capabilities [spec]
+  (merge {}
+         (when (seq (:resources spec)) {:resources {}})
+         (when (seq (:tools spec)) {:tools {}})))
+
+(defn- ->server-info [spec]
+  {:name    (:name spec)
+   :title   (:title spec)
+   :version (:server-version spec)})
+
 (defn -initialize! [spec ratom req]
   (swap! ratom assoc :initialization :requested)
-  {:jsonrpc "2.0"
-   :id      (:id req)
-   :result  {:protocolVersion (:protocol-version spec)
-             :serverInfo      {:name    (:name spec)
-                               :title   (:title spec)
-                               :version (:server-version spec)}
-             :capabilities    (merge {}
-                                     (when (seq (:resources spec)) {:resources {}})
-                                     (when (seq (:tools spec)) {:tools {}}))}})
+  (core/->success (:id req)
+                  {:protocolVersion (:protocol-version spec)
+                   :serverInfo      (->server-info spec)
+                   :capabilities    (->capabilities spec)}))
 
 (defn maybe-invalid-params [req id]
   (when (schema/error? req)

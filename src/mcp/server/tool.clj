@@ -23,21 +23,16 @@
 
 (defn ->list-handler [tools-for-list]
   (fn [req]
-    {:jsonrpc "2.0"
-     :id      (:id req)
-     :result  {:tools tools-for-list}}))
+    (core/->success (:id req) {:tools tools-for-list})))
 
 (defn with-tool [server-spec tool-spec]
   (update server-spec :tools conj tool-spec))
 
+(defn- unknown-tool-error [tool-name]
+  {:code -32602 :message (format "Unknown tool: %s" tool-name)})
+
 (defn ->call-handler [tools-by-name]
   (fn [{:keys [params] :as req}]
     (if-let [{:keys [handler]} (get tools-by-name (:name params))]
-      (core/with-version
-        {:id (:id req)
-         :result {:content [{:type "text" :text (utilc/->json (handler req))}]}})
-      (core/with-version
-        {:id (:id req)
-         :error
-         {:code    -32602
-          :message (format "Unknown tool: %s" (:name params))}}))))
+      (core/->success (:id req) {:content [{:type "text" :text (utilc/->json (handler req))}]})
+      (core/->error (:id req) (unknown-tool-error (:name params))))))

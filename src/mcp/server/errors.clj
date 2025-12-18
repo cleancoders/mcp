@@ -1,25 +1,24 @@
-(ns mcp.server.errors)
+(ns mcp.server.errors
+  (:require [mcp.core :as core]))
 
-(def errors
+(def error-codes
   {:invalid-request {:code -32600 :message "Invalid Request"}
    :invalid-method  {:code -32601 :message "Method not found"}
    :uninitialized   {:code -32002 :message "Server not initialized"}
    :invalid-params  {:code -32602 :message "Invalid Parameters"}})
 
-(defn ->rpc-error
-  ([kind data] (->rpc-error kind nil data))
-  ([kind id data]
-   (merge
-     (when id {:id id})
-     {:jsonrpc "2.0"
-      :error   (merge (errors kind) {:data data})})))
+(defn- ->error-body [kind data]
+  (merge (error-codes kind) {:data data}))
 
 (defn uninitialized [id]
-  (->rpc-error :uninitialized id "Must initialize connection before invoking methods"))
+  (core/->error id (->error-body :uninitialized "Must initialize connection before invoking methods")))
+
 (defn invalid-request
-  ([data] (->rpc-error :invalid-request data))
-  ([id data] (->rpc-error :invalid-request id data)))
+  ([data] (core/->error (->error-body :invalid-request data)))
+  ([id data] (core/->error id (->error-body :invalid-request data))))
+
 (defn invalid-method [id method]
-  (->rpc-error :invalid-method id (format "Method '%s' is not supported" method)))
+  (core/->error id (->error-body :invalid-method (format "Method '%s' is not supported" method))))
+
 (defn invalid-params [id]
-  (->rpc-error :invalid-params id {:supported ["2025-06-18"]}))
+  (core/->error id (->error-body :invalid-params {:supported ["2025-06-18"]})))
