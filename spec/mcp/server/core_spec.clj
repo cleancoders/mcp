@@ -1,7 +1,9 @@
 (ns mcp.server.core-spec
-  (:require [mcp.server.core :as sut]
+  (:require [c3kit.apron.corec :as ccc]
+            [mcp.server.core :as sut]
             [mcp.server.spec-helper :as server-helper]
             [mcp.server.tool :as tool]
+            [mcp.server.trace :as trace]
             [speclj.core :refer :all]))
 
 (declare spec)
@@ -123,4 +125,41 @@
                     :id     2
                     :params {:name "foo"}}]
         (should-contain "foo-2" (with-out-str (sut/handle server (server-helper/->req req)))))))
+
+  (context "tracing"
+
+    (with events (atom []))
+    (with traced-spec (assoc @spec :trace {:enabled? true
+                                           :sink     #(swap! @events conj %)}))
+    (with traced-server (sut/->server @traced-spec))
+
+    (redefs-around [ccc/new-uuid (constantly "test-correlation-id")])
+
+    (it "traces request when enabled"
+      (sut/handle @traced-server @req)
+      (let [request-event (first @(deref events))]
+        (should= :request (:type request-event))
+        (should= "test-correlation-id" (:correlation-id request-event))
+        (should= @req (:data request-event))))
+
+    (it "traces response when enabled"
+      (sut/handle @traced-server @req)
+      (let [response-event (second @(deref events))]
+        (should= :response (:type response-event))
+        (should= "test-correlation-id" (:correlation-id response-event))))
+
+    (it "correlates request and response with same id"
+      (sut/handle @traced-server @req)
+      (let [[req-event resp-event] @(deref events)]
+        (should= (:correlation-id req-event) (:correlation-id resp-event))))
+
+    (it "does not trace when disabled"
+      (let [server (sut/->server (assoc @spec :trace {:enabled? false}))]
+        (sut/handle server @req)
+        (should= 0 (count @(deref events)))))
+
+    (it "does not trace when trace config missing"
+      (sut/handle @server @req)
+      (should= 0 (count @(deref events))))
+    )
   )

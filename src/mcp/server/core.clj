@@ -1,10 +1,12 @@
 (ns mcp.server.core
-  (:require [c3kit.apron.schema :as schema]
+  (:require [c3kit.apron.corec :as ccc]
+            [c3kit.apron.schema :as schema]
             [mcp.core :as core]
             [mcp.server.resource :as resource]
             [mcp.server.errors :as errors]
             [mcp.server.initialize :as init]
             [mcp.server.tool :as tool]
+            [mcp.server.trace :as trace]
             [medley.core :as medley]))
 
 (defn ->default-handlers [spec state]
@@ -93,7 +95,7 @@
   (when (-> @state :seen-ids (contains? id))
     (errors/invalid-request id (format "Request ID: %s used previously during this session" id))))
 
-(defn handle [server req]
+(defn- handle* [server req]
   (let [conformed (schema/conform rpc-request-schema req)]
     (or (maybe-bad-request req)
         (maybe-uninitialized server conformed)
@@ -101,3 +103,10 @@
         (maybe-already-initialized server req)
         (maybe-previously-used-id server req)
         (-handle server req))))
+
+(defn handle [server req]
+  (let [correlation-id (ccc/new-uuid)]
+    (trace/trace! server :request correlation-id req)
+    (let [response (handle* server req)]
+      (trace/trace! server :response correlation-id response)
+      response)))
