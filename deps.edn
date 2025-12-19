@@ -1,7 +1,7 @@
 {
  :paths   ["src"]
  :deps    {
-           com.cleancoders.c3kit/apron {:mvn/version "2.5.0"}
+           com.cleancoders.c3kit/apron {:git/url "git@github.com:cleancoders/c3kit-apron.git" :git/sha "e5598764ade61b7f9120d7b9c25a115518c99343"} ;{:mvn/version "2.5.0"}
            dev.weavejester/medley      {:mvn/version "1.9.0"}
            org.clojure/clojure         {:mvn/version "1.12.1"}
            }
