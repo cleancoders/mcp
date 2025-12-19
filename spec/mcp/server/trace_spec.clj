@@ -48,6 +48,15 @@
         (sink {:type :response :correlation-id "1" :data {}})
         (let [lines (clojure.string/split-lines (slurp @tmp-file))]
           (should= 2 (count lines)))))
+
+    (it "creates parent directory if it does not exist"
+      (let [nested-path (str "/tmp/mcp-trace-test-" (System/currentTimeMillis) "/nested/trace.log")
+            sink        (sut/->file-sink nested-path)]
+        (sink {:type :request :correlation-id "1" :data {}})
+        (should (clojure.java.io/as-file nested-path))
+        (clojure.java.io/delete-file nested-path true)
+        (clojure.java.io/delete-file (.getParent (clojure.java.io/file nested-path)) true)
+        (clojure.java.io/delete-file (.getParent (.getParentFile (clojure.java.io/file nested-path))) true)))
     )
 
   (context "noop-sink"
