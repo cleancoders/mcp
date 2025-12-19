@@ -4,85 +4,110 @@
             [mcp.server.tool :as sut]
             [speclj.core :refer :all]))
 
-(def tool-1
-  {:name        "foo"
-   :title       "I'm to foo tool, the fool!"
-   :description "a foolish tool"
-   :handler     (fn [_] (prn "handled!"))                   ; invoke me! witj-out-str
+(def base-tool
+  {:name        "test-tool"
+   :description "A test tool"
+   :handler     (fn [_] {:result "default"})
    :inputSchema {}})
-(def tool-2
-  (assoc tool-1
-    :inputSchema {:type {:foo {:type :long :validate schema/present?}}}))
 
-(declare handler)
+(def tool-with-input-schema
+  (assoc base-tool
+    :name "input-tool"
+    :inputSchema {:type {:path {:type :string :validate schema/present?}}}))
+
+(def tool-with-output-schema
+  (assoc base-tool
+    :name "output-tool"
+    :outputSchema {:type {:files {:type [:string]}
+                          :count {:type :int}}}))
+
+(defn- list-request [] {:jsonrpc "2.0" :id 1 :method "tools/list" :params {}})
+(defn- call-request [tool-name] {:jsonrpc "2.0" :id 1 :method "tools/call" :params {:name tool-name}})
+
+(defn- ->handler [tool-fn]
+  (sut/->call-handler (sut/->tools-by-name [(assoc base-tool :handler tool-fn)])))
 
 (describe "Tools"
 
-  (context "->list-handler"
+  (context "listing"
 
-    (it "one tool"
-      (let [handler (sut/->list-handler (sut/->tools-for-list [tool-1]))
-            req     {:jsonrpc "2.0"
-                     :id      1
-                     :method  "tools/list"
-                     :params  {}}
-            resp    (handler req)]
-        (should= "2.0" (:jsonrpc resp))
-        (should= 1 (:id resp))
-        (should= (-> (dissoc tool-1 :handler)
-                     (assoc :inputSchema
-                            {:type       "object"
-                             :properties {}}))
-          (-> resp :result :tools first))))
+    (it "transforms empty inputSchema to object schema"
+      (let [handler (sut/->list-handler (sut/->tools-for-list [base-tool]))
+            tool    (-> (handler (list-request)) :result :tools first)]
+        (should= {:type "object" :properties {}} (:inputSchema tool))))
 
-    (it "tools with schemas"
-      (let [handler (sut/->list-handler (sut/->tools-for-list [tool-1 tool-2]))
-            req     {:jsonrpc "2.0"
-                     :id      1
-                     :method  "tools/list"
-                     :params  {}}
-            resp    (handler req)]
-        (should= "2.0" (:jsonrpc resp))
-        (should= 1 (:id resp))
-        (should= (-> (dissoc tool-2 :handler)
-                     (update :inputSchema doc/apron->openapi-schema))
-          (-> resp :result :tools second))))
-    )
+    (it "transforms apron inputSchema to openapi schema"
+      (let [handler (sut/->list-handler (sut/->tools-for-list [tool-with-input-schema]))
+            tool    (-> (handler (list-request)) :result :tools first)]
+        (should= (doc/apron->openapi-schema (:inputSchema tool-with-input-schema))
+          (:inputSchema tool))))
 
-  (context "->call-handler"
+    (it "transforms apron outputSchema to openapi schema"
+      (let [handler (sut/->list-handler (sut/->tools-for-list [tool-with-output-schema]))
+            tool    (-> (handler (list-request)) :result :tools first)]
+        (should= {:type       "object"
+                  :properties {:files {:type "array" :items {:type "string"}}
+                               :count {:type "integer"}}}
+          (:outputSchema tool))))
 
-    (with handler (sut/->call-handler (sut/->tools-by-name [tool-1])))
+    (it "omits outputSchema when not specified"
+      (let [handler (sut/->list-handler (sut/->tools-for-list [base-tool]))
+            tool    (-> (handler (list-request)) :result :tools first)]
+        (should-be-nil (:outputSchema tool))))
 
-    (it "fails when tool not found"
-      (let [req {:jsonrpc "2.0"
-                 :id      1
-                 :method  "tools/call"
-                 :params  {:name "baz"}}
-            {:keys [error] :as resp} (@handler req)]
-        (should= "2.0" (:jsonrpc resp))
-        (should= 1 (:id resp))
+    (it "removes handler from listed tools"
+      (let [handler (sut/->list-handler (sut/->tools-for-list [base-tool]))
+            tool    (-> (handler (list-request)) :result :tools first)]
+        (should-be-nil (:handler tool)))))
+
+  (context "calling"
+
+    (it "returns error for unknown tool"
+      (let [handler (sut/->call-handler (sut/->tools-by-name [base-tool]))
+            {:keys [error]} (handler (call-request "unknown"))]
         (should= -32602 (:code error))
-        (should= "Unknown tool: baz" (:message error))
-        ))
+        (should= "Unknown tool: unknown" (:message error))))
 
-    (it "calls tool when found"
-      (let [req  {:jsonrpc "2.0"
-                  :id      1
-                  :method  "tools/call"
-                  :params  {:name "foo"}}
-            resp (with-out-str (@handler req))]
-        (should-contain "handled!" resp)))
+    (it "invokes handler"
+      (let [invoked? (atom false)
+            handler  (->handler (fn [_] (reset! invoked? true) nil))]
+        (handler (call-request "test-tool"))
+        (should @invoked?)))
 
-    (it "returns output of tool"
-      (let [tool-handler (fn [req] (str "handled " (:id req)))
-            handler      (sut/->call-handler (sut/->tools-by-name [(assoc tool-1 :handler tool-handler)]))
-            req          {:jsonrpc "2.0"
-                          :id      1
-                          :method  "tools/call"
-                          :params  {:name "foo"}}
-            resp         (-> (handler req) :result :content first)]
-        (should= "text" (:type resp))
-        (should= "\"handled 1\"" (:text resp))))
+    (context "legacy response (plain value)"
 
-    )
-  )
+      (it "wraps in text content"
+        (let [handler (->handler (fn [_] {:data "value"}))
+              result  (-> (handler (call-request "test-tool")) :result)]
+          (should= "text" (-> result :content first :type))
+          (should= "{\"data\":\"value\"}" (-> result :content first :text)))))
+
+    (context "structured response"
+
+      (it "returns structuredContent"
+        (let [handler (->handler (fn [_] {:structured {:files ["a.txt"] :count 1}}))
+              result  (-> (handler (call-request "test-tool")) :result)]
+          (should= {:files ["a.txt"] :count 1} (:structuredContent result))
+          (should-be-nil (:content result))))
+
+      (it "returns content array"
+        (let [handler (->handler (fn [_] {:content [{:type "text" :text "hello"}]}))
+              result  (-> (handler (call-request "test-tool")) :result)]
+          (should= [{:type "text" :text "hello"}] (:content result))))
+
+      (it "returns both structured and content"
+        (let [handler (->handler (fn [_] {:structured {:count 2}
+                                          :content    [{:type "text" :text "Found 2"}]}))
+              result  (-> (handler (call-request "test-tool")) :result)]
+          (should= {:count 2} (:structuredContent result))
+          (should= [{:type "text" :text "Found 2"}] (:content result))))
+
+      (it "sets isError when error? is true"
+        (let [handler (->handler (fn [_] {:error? true :content [{:type "text" :text "Failed"}]}))
+              result  (-> (handler (call-request "test-tool")) :result)]
+          (should= true (:isError result))))
+
+      (it "omits isError on success"
+        (let [handler (->handler (fn [_] {:content [{:type "text" :text "OK"}]}))
+              result  (-> (handler (call-request "test-tool")) :result)]
+          (should-be-nil (:isError result)))))))
