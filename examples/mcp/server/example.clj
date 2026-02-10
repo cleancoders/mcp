@@ -18,7 +18,7 @@
                 :protocol-version "2025-06-18"
                 :handlers         {"experimental/foo" {:handler (fn [_req] "handled")}}}
         server (-> spec
-                   (resource/with-resource {:kind :file :path "/foo/bar.clj"})
+                   (resource/with-resource {:kind :file :path "deps.edn"})
                    (tool/with-tool tool)
                    (tool/with-tool shell/tool)
                    server/->server)]
